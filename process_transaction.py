@@ -8,7 +8,7 @@ import requests
 import hashlib
 import ast
 import string
-import base36
+
 import random
 import websocket
 import sys
@@ -21,13 +21,158 @@ from commands import upgrade, activate, adduser, buy, explore, finish_building, 
 from commands import update_shop, attack, battle_return, cancel, support, enable, charge, finish_charging, offload_deploy_mission, siege
 from commands import break_siege, fly_home_mission, offload_return_mission, issue, transfer_stardust, new_season, upgrade_yamato, finish_yamato, finish_season
 from commands import respawn, burn, issuestardust, ask, cancel_ask, fill_ask, buff, updatebuff
+from db_connection import get_db_connection
+import mysql.connector
+from mysql.connector import Error
+
 # get the productivity data from the SQL DB
 # Connect to the database
 
-def get_transaction(trx, parameter):
+def get_parameter():
+    parameter = {}
+
+    # 연결 생성
+    connection = get_db_connection()
+    if connection is None:
+        print("Database connection failed.")
+        return
+    
+    try:
+        # 업그레이드 비용 데이터 수집
+        upgrade_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "explorership",
+                        "transportship", "scout", "patrol", "cutter", "corvette", "frigate", "destroyer", "cruiser", "battlecruiser",
+                        "carrier", "dreadnought", "yamato", "yamato1", "yamato2", "yamato3", "yamato4", "yamato5", "yamato6", "yamato7", "yamato8", "yamato9", "yamato10", "yamato11", "yamato12",
+                        "yamato13", "yamato14", "yamato15", "yamato16", "yamato17", "yamato18", "yamato19", "yamato20", "oremine", "coppermine", "coalmine", "uraniummine", "base",
+                        "researchcenter", "bunker", "shieldgenerator", "explorership1", "transportship1", "transportship2"]
+        upgrade_costs = {}
+        cursor = connection.cursor(dictionary=True)
+
+        query = "SELECT * FROM upgradecosts"
+        cursor.execute(query)
+        upgradecosts = cursor.fetchall()
+
+        for upgradecost in upgradecosts:
+            name = upgradecost["name"]
+            if name in upgrade_costs:
+                # 딕셔너리에 키가 이미 존재하는 경우
+                if str(len(upgrade_costs[name]) + 1) not in upgrade_costs[name]:
+                    upgrade_costs[name][str(len(upgrade_costs[name]) + 1)] = upgradecost
+                # 여기서 value를 사용하여 작업을 진행할 수 있음
+            else:
+                # 딕셔너리에 키가 존재하지 않는 경우 처리
+                upgrade_costs[name] = {str(1): upgradecost}
+
+        # for key in upgrade_keys:
+        #     upgrade_costs[key] = {}
+        #     for x in range(1, 21):
+        #         result = table.find_one(name=key, level=x)
+        #         if result is not None:
+        #             upgrade_costs[key][str(x)] = result
+        parameter["upgrade_costs"] = upgrade_costs
+
+        # 스킬 비용 데이터 수집
+        skill_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "Explorer",
+                      "Transporter", "Scout", "Patrol", "Cutter", "Corvette", "Frigate", "Destroyer", "Cruiser", "Battlecruiser",
+                      "Carrier", "Dreadnought", "Yamato", "oremine", "coppermine", "coalmine", "uraniummine", "base", "researchcenter",
+                      "orebooster", "coalbooster", "copperbooster", "uraniumbooster", "missioncontrol", "bunker",
+                      "enlargebunker", "structureimprove", "armorimprove", "shieldimprove",
+                      "rocketimprove", "bulletimprove", "laserimprove", "regenerationbonus", "repairbonus",
+                      "shieldgenerator", "siegeprolongation", "depotincrease"]
+        skill_costs = {}
+        
+        query = "SELECT * FROM skillcosts"
+        cursor.execute(query)
+        skillcosts = cursor.fetchall()
+
+        for skillcost in skillcosts:
+            name = skillcost["name"]
+            if name in skill_costs:
+                # 딕셔너리에 키가 이미 존재하는 경우
+                if str(len(skill_costs[name]) + 1) not in skill_costs[name]:
+                    skill_costs[name][str(len(skill_costs[name]) + 1)] = skillcost
+                # 여기서 value를 사용하여 작업을 진행할 수 있음
+            else:
+                # 딕셔너리에 키가 존재하지 않는 경우 처리
+                skill_costs[name] = {str(1): skillcost}
+
+        parameter["skill_costs"] = skill_costs
+
+        # 생산률 데이터 수집
+        production_keys = ["coalmine", "oremine", "coppermine", "uraniummine", "coaldepot", "oredepot", "copperdepot", "uraniumdepot"]
+        production_rates = {}
+        
+        query = "SELECT * FROM productivity"
+        cursor.execute(query)
+        productivity = cursor.fetchall()
+
+        for product in productivity:
+            name = product["name"]
+            if name in production_rates:
+                # 딕셔너리에 키가 이미 존재하는 경우
+                if str(len(production_rates[name]) + 1) not in production_rates[name]:
+                    production_rates[name][str(len(production_rates[name]))] = product
+                # 여기서 value를 사용하여 작업을 진행할 수 있음
+            else:
+                # 딕셔너리에 키가 존재하지 않는 경우 처리
+                production_rates[name] = {str(0): product}
+
+        parameter["production_rates"] = production_rates
+
+        # 행성 희귀도 데이터 수집
+        planet_rarity = {}
+        
+        query = "SELECT * FROM planetlevels"
+        cursor.execute(query)
+        rarity = cursor.fetchall()
+
+        for data in rarity:
+            planet_rarity[data["rarity"]] = data
+        parameter["planet_rarity"] = planet_rarity
+
+        # 함선 통계 데이터 수집
+        shipstats = {}
+        
+        query = "SELECT * FROM shipstats"
+        cursor.execute(query)
+        ships = cursor.fetchall()
+
+        for result in ships:
+            if result is not None:
+                shipstats[result["name"]] = result
+        parameter["shipstats"] = shipstats
+
+        return parameter
+    
+    except mysql.connector.Error as err:
+        print(f"MySQL Error: {err}")
+    
+    except Exception as err:
+        print(f"Error: {err}")
+    
+    finally:
+        # 연결 닫기
+        if 'cursor' in locals() and cursor is not None:
+            cursor.close()
+        if 'connection' in locals() and connection.is_connected():
+            connection.close()
+
+def get_transaction():
     # get all open transactions from the database
     # Connect to the database
         
+    connection = get_db_connection()
+    if connection is None:
+        print("Database connection failed.")
+        return
+    
+    cursor = connection.cursor(dictionary=True)
+
+    query = "SELECT * FROM transactions where tr_status = 0 ORDER BY id LIMIT 1"
+    cursor.execute(query)
+    trx = cursor.fetchone()
+
+    parameter = get_parameter()
+
     start_time = time.time()
 
     id = trx['id']
@@ -43,100 +188,117 @@ def get_transaction(trx, parameter):
     tr_var6 = trx['tr_var6']
     tr_var7 = trx['tr_var7']
     tr_var8 = trx['tr_var8']
-    virtualop = trx['virtualop']
     transaction_valid = True
-    time_now = trx['date'].replace(tzinfo=None)
+    time_now = trx['createdAt'].replace(tzinfo=None)
     
     success = False
     if (datetime.utcnow() - time_now).total_seconds() < 12: 
         update_ranking(parameter, time_now)
     check_ships = False
-    if abs((time_now - datetime(2019, 6, 9, 6, 22, 30)).total_seconds()) < 10:
-        check_ships = True    
-    elif abs((time_now - datetime(2019, 6, 9, 9, 22, 30)).total_seconds()) < 10:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 6, 9, 18, 35, 0)).total_seconds()) < 10:
-        check_ships = True   
-    elif abs((time_now - datetime(2019, 6, 11, 9, 22, 30)).total_seconds()) < 10:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 6, 27, 16, 9, 0)).total_seconds()) < 10:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 7, 1, 8, 22, 30)).total_seconds()) < 5:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 7, 1, 12, 0, 0)).total_seconds()) < 10:
-        check_ships = True        
-    elif abs((time_now - datetime(2019, 7, 1, 16, 30, 0)).total_seconds()) < 10:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 7, 13, 14, 40, 0)).total_seconds()) < 10:
-        check_ships = True
       
     if check_ships:
-        connection = connectdb()
-        table = connection["ships"]
-        ships = []
-        for ship in table.find():
-            ships.append(ship["id"])
-        print("%d ships found" % len(ships))
+        connection = get_db_connection()
+        if connection is None:
+            print("Failed to connect to database")
+            exit()
+
+        cursor = connection.cursor(dictionary=True)
+
+        # ships 테이블에서 모든 ship의 id 가져오기
+        query = "SELECT id FROM ships"
+        cursor.execute(query)
+        ships = cursor.fetchall()
+
+        print(f"{len(ships)} ships found")
+
         cnt = 0
-        for shipid in ships:
+        for ship in ships:
             cnt += 1
+            shipid = ship["id"]
             if cnt % 1000 == 0:
-                print("%d/%d ships processed" % (cnt, len(ships)))
-            table = connection["ships"]
-            ship = table.find_one(id=shipid)
+                print(f"{cnt}/{len(ships)} ships processed")
+
+            # ships 테이블에서 shipid에 해당하는 ship 정보 가져오기
+            query = "SELECT * FROM ships WHERE id = %s"
+            cursor.execute(query, (shipid,))
+            ship = cursor.fetchone()
+
             if ship is None:
                 continue
-            if ship["mission_busy_until"] > time_now:
-                continue            
+
             mission_id = ship["mission_id"]
-            table = connection["missions"]
-            mission = table.find_one(mission_id=mission_id)
-            if mission is None and time_now > datetime(2019, 6, 9, 18, 32, 0) and time_now < datetime(2019, 7, 1, 8, 22, 0):
-                
-                table = connection["transactions"]
-                transaction = table.find_one(tr_var1=shipid, order_by="-date")
+
+            # missions 테이블에서 mission_id에 해당하는 mission 정보 가져오기
+            query = "SELECT * FROM missions WHERE mission_id = %s"
+            cursor.execute(query, (mission_id,))
+            mission = cursor.fetchone()
+
+            if mission is None and datetime(2019, 6, 9, 18, 32, 0) < time_now < datetime(2019, 7, 1, 8, 22, 0):
+                # transactions 테이블에서 shipid와 관련된 transaction 정보 가져오기
+                query = "SELECT * FROM transactions WHERE tr_var1 = %s ORDER BY date DESC LIMIT 1"
+                cursor.execute(query, (shipid,))
+                transaction = cursor.fetchone()
+
                 if transaction is None:
                     continue
-                table = connection["missions"]
-                mission = table.find_one(mission_id=transaction["tr_var3"])
-                if mission is None:
-                    mission = table.find_one(mission_id=transaction["tr_var4"])            
+
+                # missions 테이블에서 transaction["tr_var3"] 또는 transaction["tr_var4"]에 해당하는 mission 정보 가져오기
+                query = "SELECT * FROM missions WHERE mission_id = %s OR mission_id = %s"
+                cursor.execute(query, (transaction["tr_var3"], transaction["tr_var4"]))
+                mission = cursor.fetchone()
+
             if mission is None:
-                continue 
+                continue
+
             if ship["user"] != mission["user"]:
                 continue
+
             if abs((time_now - datetime(2019, 7, 1, 8, 22, 30)).total_seconds()) < 5:
-                
                 if ship["cords_hor"] != mission["cords_hor_dest"] and not (ship["cords_hor"] == mission["cords_hor"] and ship["cords_ver"] == mission["cords_hor"]):
                     continue
                 if ship["cords_ver"] != mission["cords_ver_dest"] and not (ship["cords_hor"] == mission["cords_hor"] and ship["cords_ver"] == mission["cords_hor"]):
-                    continue   
+                    continue
             else:
                 if ship["cords_hor"] != mission["cords_hor_dest"]:
                     continue
                 if ship["cords_ver"] != mission["cords_ver_dest"]:
-                    continue               
+                    continue
+
             if mission["busy_until_return"] is None:
                 continue
+
             if mission["busy_until_return"] > time_now:
-                continue            
+                continue
+
             vops_type = None
             if mission["mission_type"] == "siege":
-                table = connection["virtualops"]
-                vops = table.find_one(mission_id=mission_id)
+                # virtualops 테이블에서 mission_id에 해당하는 vops 정보 가져오기
+                query = "SELECT * FROM virtualops WHERE mission_id = %s"
+                cursor.execute(query, (mission_id,))
+                vops = cursor.fetchone()
+
                 if vops is not None:
-                    vops_type =vops["tr_type"]            
+                    vops_type = vops["tr_type"]
+
             if ship["qyt_uranium"] == 0 and vops_type != "offload_deploy_mission":
                 continue
-     
+
             if vops_type != "offload_deploy_mission":
-                table = connection["planets"]
-                planet = table.find_one(cords_hor=mission["cords_hor"], cords_ver=mission["cords_ver"])
-                to_planet_id = planet["id"]                
-                offload_return (shipid, to_planet_id, mission_id, parameter, time_now, block_num, trx_id)
+                # planets 테이블에서 mission의 cords_hor, cords_ver에 해당하는 planet 정보 가져오기
+                query = "SELECT * FROM planets WHERE cords_hor = %s AND cords_ver = %s"
+                cursor.execute(query, (mission["cords_hor"], mission["cords_ver"]))
+                planet = cursor.fetchone()
+
+                if planet is None:
+                    continue
+
+                to_planet_id = planet["id"]
+                offload_return(shipid, to_planet_id, mission_id, parameter, time_now, block_num, trx_id)
             else:
-                table = connection['ships']
-                table.update({"id": str(shipid), "cords_hor": int(mission["cords_hor"]), "cords_ver": int(mission["cords_ver"])},['id'])                 
+                # ships 테이블 업데이트
+                query = "UPDATE ships SET cords_hor = %s, cords_ver = %s WHERE id = %s"
+                cursor.execute(query, (int(mission["cords_hor"]), int(mission["cords_ver"]), shipid))
+                connection.commit()               
     
     if tr_type == "transport":
         usr = get_planet_data(tr_var2,"user")
@@ -578,3 +740,4 @@ def get_transfer(trx):
         success = buy(command, amount, time_now, block_num, trx_id, id)
         print("%s: %s - %s -> sucess: %s" % (str(time_now), user, data["type"], str(success)))
 
+get_transaction()

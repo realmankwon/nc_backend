@@ -1,13 +1,15 @@
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from db_connection import get_db_connection
+
 from flask import Flask, jsonify, request, render_template, redirect, url_for, session, flash
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 from collections import OrderedDict
-import os
 import ast
 import json
-import sys
 from prettytable import PrettyTable
 from datetime import datetime, timedelta, timezone
 import pytz
@@ -30,16 +32,9 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 1
 app.config.from_object(__name__)
-# app.wsgi_app = ProxyFix(app.wsgi_app, num_proxies=1)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
-# limiter = Limiter(
-#     app,
-#     key_func=get_remote_address,
-#     default_limits=["2000000 per day", "120 per minute"]
-# )
-
-CORS(app, supports_credentials=True)
+CORS(app)
 
 upgrade_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "explorership",
                 "transportship", "scout","patrol","cutter","corvette", "frigate", "destroyer", "cruiser", "battlecruiser",
@@ -56,32 +51,56 @@ skill_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot"
                 "rocketimprove", "bulletimprove", "laserimprove", "regenerationbonus", "repairbonus", "shieldgenerator",
                 "siegeprolongation", "depotincrease"]
 
-db_config = {
-    "host": os.getenv('DB_HOST'),
-    "user": os.getenv('DB_USER'),
-    "password": os.getenv('DB_PASSWORD'),
-    "database": os.getenv('DB_DATABASE'),
-    "charset": os.getenv('DB_CHARSET'),
-    "pool_name": "nextcolony",
-    "pool_size": 30  # Adjust pool size as per your application's needs
-}
+@app.route('/sendCommand', methods=['POST'])
+def SendCommand():
+    connection = get_db_connection()
 
-try:
-    cnxpool = mysql.connector.pooling.MySQLConnectionPool(**db_config)
-except mysql.connector.Error as err:
-    print(f"Error: {err}")
-    cnxpool = None
-
-def get_db_connection():
-    """ Connect to MySQL database """
     try:
-        if cnxpool:
-            return cnxpool.get_connection()
-        else:
-            return mysql.connector.connect(**db_config)
+        data = request.get_json()
+        
+        if connection is None:
+            return jsonify({"error": "Database connection failed"}), 500
+
+        cursor = connection.cursor()
+
+        insert_query = """
+            INSERT INTO transactions (
+                trx, user, tr_type, tr_var1, tr_var2, tr_var3, tr_var4, tr_var5, tr_var6, tr_var7, tr_var8, tr_status, createdAt
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+        """
+
+        values = (
+            data.get("trxId", ""),
+            data.get("username", ""),
+            data.get("tr_type", ""),
+            data.get("tr_var1", ""),
+            data.get("tr_var2", ""),
+            data.get("tr_var3", ""),
+            data.get("tr_var4", ""),
+            data.get("tr_var5", ""),
+            data.get("tr_var6", ""),
+            data.get("tr_var7", ""),
+            data.get("tr_var8", ""),
+            0
+        )
+
+        cursor.execute(insert_query, values)
+
+        return jsonify({"message": "Transaction inserted successfully."}), 200
+
     except mysql.connector.Error as err:
-        print(f"Error getting connection from pool: {err}")
-        return None
+        print(f"Error: {err}")
+        return jsonify({"error": "Failed to insert transaction"}), 500
+    
+    except Exception as err:
+        print(f"Error: {err}")
+        return jsonify({"error": "Exception"}), 500
+
+    finally:
+        if 'cursor' in locals() and cursor is not None:
+            cursor.close()
+        if 'connection' in locals() and connection.is_connected():
+            connection.close() 
 
 def GetPlanetImg(rarity, type, id):
     img = ""
