@@ -24,29 +24,6 @@ def connectdb():
     db = dataset.connect(databaseConnector)
     return db
 
-def get_custom_json_id():
-    config_data = None
-    if 'config_data' not in globals():
-        config_data = read_config('config.json')
-    if config_data is None:
-        return "nextcolony"
-    if "custom_json_id" not in config_data:
-        return "nextcolony"
-    custom_json_id = config_data["custom_json_id"]
-
-    return custom_json_id
-
-def get_transfer_id():
-    if 'config_data' not in globals():
-        config_data = read_config('config.json')
-    if config_data is None:
-        return "nc"
-    if "transfer_id" not in config_data:
-        return "nc"        
-    transfer_id = config_data["transfer_id"]    
-
-    return transfer_id
-
 def generateUid(length):
     number = round((pow(36, length + 1) - random.random() * pow(36, length)))
     return base36.dumps(number).upper()
@@ -201,8 +178,8 @@ def read_parameter():
     upgrade_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "explorership",
                     "transportship", "scout", "patrol", "cutter", "corvette", "frigate", "destroyer", "cruiser", "battlecruiser",
                     "carrier", "dreadnought","yamato", "yamato1", "yamato2", "yamato3","yamato4","yamato5","yamato6","yamato7","yamato8","yamato9","yamato10","yamato11","yamato12",
-                      "yamato13","yamato14","yamato15","yamato16","yamato17","yamato18","yamato19","yamato20", "oremine", "coppermine", "coalmine", "uraniummine", "base", "researchcenter",
-                    "bunker", "shieldgenerator"]
+                      "yamato13","yamato14","yamato15","yamato16","yamato17","yamato18","yamato19","yamato20","oremine", "coppermine", "coalmine", "uraniummine", "base",
+                    "researchcenter", "bunker", "shieldgenerator", "explorership1", "transportship1", "transportship2"]
     
     connection = connectdb()
     table = connection["upgradecosts"]
@@ -216,11 +193,11 @@ def read_parameter():
     skill_costs = {}
     skill_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "Explorer",
                     "Transporter", "Scout", "Patrol", "Cutter", "Corvette", "Frigate", "Destroyer", "Cruiser", "Battlecruiser",
-                    "Carrier", "Dreadnought", "Yamato","oremine", "coppermine", "coalmine", "uraniummine", "base", "researchcenter",
-                    "orebooster", "coalbooster", "copperbooster", "uraniumbooster", "missioncontrol", "bunker",                   
+                    "Carrier", "Dreadnought", "Yamato", "oremine", "coppermine", "coalmine", "uraniummine", "base", "researchcenter",
+                    "orebooster", "coalbooster", "copperbooster", "uraniumbooster", "missioncontrol", "bunker",
                     "enlargebunker", "structureimprove", "armorimprove", "shieldimprove",
                     "rocketimprove", "bulletimprove", "laserimprove", "regenerationbonus", "repairbonus",
-                    "shieldgenerator" ]
+                    "shieldgenerator", "siegeprolongation", "depotincrease"]
     
     connection = connectdb()
     table = connection["skillcosts"]
@@ -249,7 +226,7 @@ def read_parameter():
                 production_rates[key][str(x)] = result
                 
     parameter["production_rates"] = production_rates
-
+    
     planet_rarity = {}
     connection = connectdb()
     table = connection["planetlevels"]
@@ -266,7 +243,7 @@ def read_parameter():
         if result is not None:
             shipstats[result["name"]] = result
                 
-    parameter["shipstats"] = shipstats   
+    parameter["shipstats"] = shipstats  
     
     connection.executable.close()
     return parameter
