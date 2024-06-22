@@ -20,9 +20,7 @@ def read_config(config_file):
     return config_data
 
 def connectdb():
-    if 'config_data' not in globals():
-        config_data = read_config('config.json')
-    databaseConnector = config_data["databaseConnector"]
+    databaseConnector = os.getenv('DB_CONNECTOR')
     db = dataset.connect(databaseConnector)
     return db
 
@@ -251,6 +249,25 @@ def read_parameter():
                 production_rates[key][str(x)] = result
                 
     parameter["production_rates"] = production_rates
+
+    planet_rarity = {}
+    connection = connectdb()
+    table = connection["planetlevels"]
+    for data in table.find():
+        planet_rarity[data["rarity"]] = data
+    
+    parameter["planet_rarity"] = planet_rarity
+    
+    shipstats = {}
+    
+    connection = connectdb()
+    table = connection["shipstats"]
+    for result in table.find():
+        if result is not None:
+            shipstats[result["name"]] = result
+                
+    parameter["shipstats"] = shipstats   
+    
     connection.executable.close()
     return parameter
 

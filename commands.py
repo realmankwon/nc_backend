@@ -25,20 +25,13 @@ from utils.ncutils import coords_to_solarsystem, found_stardust, get_random_star
 from battle import apply_damage
 
 
-def get_seed(block_num, trx_id):
-    connection = connectdb()
-    table = connection["blocks"]
-    block = table.find_one(block_num=block_num)
-    nodelist = NodeList()
-    
-    if block is None or (block is not None and (block["block_id"] is None or block["previous"] is None)):
-        nodelist.update_nodes()
-        stm = Steem(nodelist.get_nodes())
-        try:
-            block = Block(block_num, steem_instance=stm)
-        except:
-            block = Block(block_num, steem_instance=stm)
-    seed = hashlib.md5((trx_id + block["block_id"] + block["previous"]).encode()).hexdigest() 
+def get_seed(trx_id):
+    # 현재 시간 얻기
+    current_time = datetime.now()
+
+    # 현재 시간을 'YYYY-MM-DD HH:MM:SS' 형식으로 출력
+    formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+    seed = hashlib.md5((trx_id + formatted_time).encode()).hexdigest() 
     return seed
 
 def move_ship(shipid,cords_hor,cords_ver, mission_id, parameter, time_now):
@@ -5708,7 +5701,7 @@ def adduser(name, parameter, time_now, block_num, trx_id):
         return (False)
     
     
-    seed = get_seed(block_num, trx_id)           
+    seed = get_seed(trx_id)           
     set_seed(seed)    
     legendary_planets_uid = ['1000', '1001', '1002', '1003', '1004', '1005', '1006', '1007', '1008']
     if name == 'sternenkrieger':

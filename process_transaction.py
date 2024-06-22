@@ -15,7 +15,7 @@ import sys
 from random import randint
 from utils.ncutils import checkifuser, findfreeplanet, shipdata, connectdb, get_shipdata,get_planetdata,get_distance,create_planet
 from utils.ncutils import find_starterplanet_coords, generateUid, uid_from_block, write_spacedb, get_ship_data, get_item_data, get_planet_data, update_transaction_status, update_transfer_status
-from utils.ncutils import get_custom_json_id, get_transfer_id, get_mission_data, get_ask_data
+from utils.ncutils import get_custom_json_id, get_transfer_id, get_mission_data, get_ask_data, read_parameter
 from commands import move_ship, explorespace, transport_resources, offload_deploy, offload_return, get_resource_levels, build_ship, enhance
 from commands import upgrade, activate, adduser, buy, explore, finish_building, finish_skill, gift_item, update_ranking, gift_planet, deploy_ships, rename_planet
 from commands import update_shop, attack, battle_return, cancel, support, enable, charge, finish_charging, offload_deploy_mission, siege
@@ -24,10 +24,14 @@ from commands import respawn, burn, issuestardust, ask, cancel_ask, fill_ask, bu
 # get the productivity data from the SQL DB
 # Connect to the database
 
-def get_transaction(trx, parameter):
+def get_transaction():
     # get all open transactions from the database
     # Connect to the database
-        
+    parameter = read_parameter();
+    connection = connectdb()
+    transactions = connection["transactions"]
+    trx = transactions.find_one(tr_status=0, order_by='id')
+    
     start_time = time.time()
 
     id = trx['id']
@@ -51,27 +55,27 @@ def get_transaction(trx, parameter):
     if (datetime.utcnow() - time_now).total_seconds() < 12: 
         update_ranking(parameter, time_now)
     check_ships = False
-    if abs((time_now - datetime(2019, 6, 9, 6, 22, 30)).total_seconds()) < 10:
-        check_ships = True    
-    elif abs((time_now - datetime(2019, 6, 9, 9, 22, 30)).total_seconds()) < 10:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 6, 9, 18, 35, 0)).total_seconds()) < 10:
-        check_ships = True   
-    elif abs((time_now - datetime(2019, 6, 11, 9, 22, 30)).total_seconds()) < 10:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 6, 27, 16, 9, 0)).total_seconds()) < 10:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 7, 1, 8, 22, 30)).total_seconds()) < 5:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 7, 1, 12, 0, 0)).total_seconds()) < 10:
-        check_ships = True        
-    elif abs((time_now - datetime(2019, 7, 1, 16, 30, 0)).total_seconds()) < 10:
-        check_ships = True
-    elif abs((time_now - datetime(2019, 7, 13, 14, 40, 0)).total_seconds()) < 10:
-        check_ships = True
+    # if abs((time_now - datetime(2019, 6, 9, 6, 22, 30)).total_seconds()) < 10:
+    #     check_ships = True    
+    # elif abs((time_now - datetime(2019, 6, 9, 9, 22, 30)).total_seconds()) < 10:
+    #     check_ships = True
+    # elif abs((time_now - datetime(2019, 6, 9, 18, 35, 0)).total_seconds()) < 10:
+    #     check_ships = True   
+    # elif abs((time_now - datetime(2019, 6, 11, 9, 22, 30)).total_seconds()) < 10:
+    #     check_ships = True
+    # elif abs((time_now - datetime(2019, 6, 27, 16, 9, 0)).total_seconds()) < 10:
+    #     check_ships = True
+    # elif abs((time_now - datetime(2019, 7, 1, 8, 22, 30)).total_seconds()) < 5:
+    #     check_ships = True
+    # elif abs((time_now - datetime(2019, 7, 1, 12, 0, 0)).total_seconds()) < 10:
+    #     check_ships = True        
+    # elif abs((time_now - datetime(2019, 7, 1, 16, 30, 0)).total_seconds()) < 10:
+    #     check_ships = True
+    # elif abs((time_now - datetime(2019, 7, 13, 14, 40, 0)).total_seconds()) < 10:
+    #     check_ships = True
       
+   
     if check_ships:
-        connection = connectdb()
         table = connection["ships"]
         ships = []
         for ship in table.find():
@@ -578,3 +582,4 @@ def get_transfer(trx):
         success = buy(command, amount, time_now, block_num, trx_id, id)
         print("%s: %s - %s -> sucess: %s" % (str(time_now), user, data["type"], str(success)))
 
+get_transaction()

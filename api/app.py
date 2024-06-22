@@ -1,8 +1,6 @@
 from flask import Flask, jsonify, request, render_template, redirect, url_for, session, flash
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from werkzeug.contrib.fixers import ProxyFix
+from werkzeug.middleware.proxy_fix import ProxyFix
 from collections import OrderedDict
 import os
 import ast
@@ -20,26 +18,18 @@ import re
 from beem import Steem
 from steemengine.market import Wallet
 
-
-
-config_file = 'config.json'
-with open(config_file) as json_data_file:
-    config_data = json.load(json_data_file)
+# config_file = 'config.json'
+# with open(config_file) as json_data_file:
+#     config_data = json.load(json_data_file)
     
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 1
 app.config.from_object(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, num_proxies=1)
-
-limiter = Limiter(
-    app,
-    key_func=get_remote_address,
-    default_limits=["2000000 per day", "120 per minute"]
-)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
 CORS(app, supports_credentials=True)
 
-databaseConnector = config_data["databaseConnector"]
+databaseConnector = os.getenv('DB_CONNECTOR')
 
 
 upgrade_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "explorership",
@@ -93,6 +83,29 @@ def GetPlanetImg(rarity, type, id):
 @app.route('/')
 def main():
     return ""
+
+
+@app.route('/sendCommand', methods=['POST'])
+def SendCommand():
+    
+    try:
+        # 현재 시간 얻기
+        current_time = datetime.now()
+
+        # 현재 시간을 'YYYY-MM-DD HH:MM:SS' 형식으로 출력
+        formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+        data = request.get_json()
+
+        db = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+        table = db["transactions"]    
+        table.insert({"trx":data.get("trx", ""), "user":data.get("username", ""),"tr_type":data.get("tr_type", ""), "tr_var1": data.get("tr_var1", ""), "tr_var2": data.get("tr_var2", ""), "tr_var3":data.get("tr_var3", ""), "tr_var4": data.get("tr_var4", ""),
+                          "tr_var5": data.get("tr_var5", ""), "tr_var6": data.get("tr_var6", ""), "tr_var7":data.get("tr_var7", ""), "tr_var8": data.get("tr_var8", ""), "tr_status": 0, "date": formatted_time})
+           
+        return jsonify({"message": "Transaction inserted successfully."}), 200
+
+    except Exception as err:
+        print(f"Error: {err}")
+        return jsonify({"error": "Exception"}), 500
 
 # {"coal":71.3231,"ore":23.2371,"uranium":0.832567,"copper":2.7048,"coalrate":320,"orerate":120,"copperrate":40,"uraniumrate":20,"coaldepot":480,"oredepot":240,"copperdepot":60,"uraniumdepot":30,"lastUpdate":1555960626}
 @app.route('/loadqyt', methods=['GET'])
@@ -217,9 +230,15 @@ def loaduser():
     db = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
     table = db["users"]
     u = table.find_one(username=user)
+    
+    if u is None:
+        return jsonify([])
     s = db.query("SELECT SUM(stardust) FROM users WHERE username != 'null'")
     for row in s:
-        stardust_supply = int(row['SUM(stardust)']) 
+        if row['SUM(stardust)'] is None :
+            stardust_supply = 0
+        else :
+            stardust_supply = int(row['SUM(stardust)']) 
     if u is None:
         return jsonify([])
     
