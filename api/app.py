@@ -88,6 +88,7 @@ def main():
 @app.route('/sendCommand', methods=['POST'])
 def SendCommand():
     
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_size' : 30, 'pool_recycle': 3600})
     try:
         # 현재 시간 얻기
         current_time = datetime.now()
@@ -96,7 +97,6 @@ def SendCommand():
         formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
         data = request.get_json()
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_size' : 30, 'pool_recycle': 3600})
         table = connection["transactions"]    
         table.insert({"trx":data.get("trx", ""), "user":data.get("username", ""),"tr_type":data.get("tr_type", ""), "tr_var1": data.get("tr_var1", ""), "tr_var2": data.get("tr_var2", ""), "tr_var3":data.get("tr_var3", ""), "tr_var4": data.get("tr_var4", ""),
                           "tr_var5": data.get("tr_var5", ""), "tr_var6": data.get("tr_var6", ""), "tr_var7":data.get("tr_var7", ""), "tr_var8": data.get("tr_var8", ""), "tr_status": 0, "date": formatted_time})
@@ -115,12 +115,13 @@ def loadqyt():
     """
     Add a new rule
     """
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+
     try:
         planetid = request.args.get('id', None)
         if planetid is None:
             return jsonify({"coal": 0, "ore": 0, "copper": 0, "uranium": 0, "lastUpdate": 99999999999999})
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         p = table.find_one(id=planetid)
 
@@ -136,12 +137,13 @@ def loadqyt():
 
 @app.route('/loadbuildings', methods=['GET'])
 def loadbuildings():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         planetid = request.args.get('id', None)
         if planetid is None:
             return jsonify([])
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         p = table.find_one(id=planetid)
         
@@ -231,11 +233,12 @@ def loadbuildings():
 
 @app.route('/loaduser', methods=['GET'])
 def loaduser():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         if user is None:
             return jsonify([])
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["users"]
         u = table.find_one(username=user)
         
@@ -257,6 +260,8 @@ def loaduser():
 
 @app.route('/sd_balance', methods=['GET'])
 def sd_balance():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         if user is None:
@@ -269,7 +274,6 @@ def sd_balance():
         except:
             se_balance = 0
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["users"]
         u = table.find_one(username=user)
         s = connection.query("SELECT SUM(stardust) FROM users WHERE username != 'null'")
@@ -285,8 +289,9 @@ def sd_balance():
 
 @app.route('/currentseason', methods=['GET'])
 def currentseason():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:    
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["season"]
         last_season = table.find_one(order_by="-end_date")
         if last_season is None:
@@ -294,13 +299,14 @@ def currentseason():
         if last_season["end_date"] < datetime.utcnow():
             return jsonify({})
         
-        
         return jsonify(last_season)
     finally:
         connection.close()
 
 @app.route('/wallet', methods=['GET'])
 def wallet():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         limit = request.args.get('limit', None)
@@ -321,7 +327,6 @@ def wallet():
         else:
             page = 0    
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["users"]
         u = table.find_one(username=user)
 
@@ -364,6 +369,8 @@ def wallet():
 
 @app.route('/wallet_ranking', methods=['GET'])
 def wallet_ranking():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         limit = request.args.get('limit', 150)
         page = request.args.get('page', None)
@@ -379,8 +386,7 @@ def wallet_ranking():
             except:
                 page = None      
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-        
+            
         s = connection.query("SELECT SUM(stardust) FROM users WHERE username != 'null'")
         for row in s:
             stardust_supply = int(row['SUM(stardust)'])    
@@ -407,12 +413,13 @@ def wallet_ranking():
 
 @app.route('/loadtransaction', methods=['GET'])
 def loadtransaction():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         trx_id = request.args.get('trx_id', None)
         if trx_id is None:
             return jsonify([])
         limit = 10
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["transactions"]
         trx_list = []
         for trx in table.find(trx=trx_id, _limit=limit):
@@ -429,12 +436,13 @@ def loadtransaction():
 
 @app.route('/loadskills', methods=['GET'])
 def loadskills():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         if user is None:
             return jsonify([])
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["users"]
         u = table.find_one(username=user)
     
@@ -473,6 +481,8 @@ def loadskills():
 
 @app.route('/loadplanets', methods=['GET'])
 def loadplanets():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         fromm = int(request.args.get('from', 0))
@@ -481,7 +491,6 @@ def loadplanets():
         if to == 0:
             to = 100
             
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         total = table.count()
         i = 1
@@ -519,6 +528,8 @@ def loadplanets():
 
 @app.route('/loadproduction', methods=['GET'])
 def loadproduction():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         planetid = request.args.get('id', None)
         user = request.args.get('user', None)
@@ -527,7 +538,6 @@ def loadproduction():
         if user is None:
             return jsonify([])
             
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         row = table.find_one(id=planetid)
     
@@ -635,6 +645,8 @@ def loadproduction():
 
 @app.route('/loadcost', methods=['GET'])
 def loadcost():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         id = request.args.get('level', 0)
         name = request.args.get('name', None)
@@ -647,7 +659,6 @@ def loadcost():
         if name is None:
             return jsonify([])
             
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         rows  = table.find_one(id=planetID)
         if rows is None:
@@ -679,6 +690,8 @@ def loadcost():
 
 @app.route('/shipyard', methods=['GET'])
 def shipyard():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         name = request.args.get('name', None)
         planetid = request.args.get('id', None)
@@ -686,7 +699,6 @@ def shipyard():
         if planetid is None:
             return jsonify([])
         ship_list = []
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         p = table.find_one(id=planetid)
     
@@ -776,13 +788,14 @@ def shipyard():
     
 @app.route('/loadgift', methods=['GET'])
 def loadgift():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         if user is None:
             return jsonify([])
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-        table = connection["items"]
+        table = connection["items"]     
         stack = []
         for row in table.find(owner=user, last_owner={'not': None}, activated_trx=None, order_by='item_gifted_at'):
             table = connection["shop"]
@@ -797,13 +810,13 @@ def loadgift():
 
 @app.route('/loadbattle', methods=['GET'])
 def loadbattle():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         mission_id = request.args.get('mission_id', None)
         battle_number = request.args.get('battle_number', None)
         limit = request.args.get('limit', 100)
 
-        
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["battleresults"]
         stack = []
         missions = []
@@ -863,6 +876,8 @@ def loadbattle():
 
 @app.route('/loadranking', methods=['GET'])
 def loadranking():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         sort = request.args.get('sort', 'meta')
         limit = request.args.get('limit', 150)
@@ -879,7 +894,6 @@ def loadranking():
             except:
                 page = None      
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["ranking"]
         stack = []
         if sort == "meta":
@@ -917,8 +931,9 @@ def loadranking():
 
 @app.route('/loadtranslation', methods=['GET'])
 def loadtranslation():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["translate"]
         stack  = []
         for row in table.find():
@@ -929,10 +944,11 @@ def loadtranslation():
 
 @app.route('/loadshop', methods=['GET'])
 def loadshop():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["shop"]    
         stack  = []
         for row in table.find(order_by='id'):
@@ -989,6 +1005,8 @@ def loadshop():
 
 @app.route('/loadfleet', methods=['GET'])
 def loadfleet():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         planetid = request.args.get('planetid', None)
         user = request.args.get('user', None)
@@ -997,7 +1015,6 @@ def loadfleet():
             return jsonify([])
         if planetid is None:
             return jsonify([])    
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         if planetid is not None:
             rows = table.find_one(id=planetid)
@@ -1082,6 +1099,8 @@ def loadfleet():
 
 @app.route('/planetfleet', methods=['GET'])
 def planetfleet():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         planet = request.args.get('planet', None)
         user = request.args.get('user', None)
@@ -1090,8 +1109,7 @@ def planetfleet():
             return jsonify([])
         if planet is None:
             return jsonify([])
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-
+        
         table = connection["users"]
         userdata = table.find_one(username=user)
         if userdata is None:
@@ -1152,6 +1170,8 @@ def planetfleet():
 
 @app.route('/planetships', methods=['GET'])
 def planetships():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         planet = request.args.get('planet', None)
         user = request.args.get('user', None)
@@ -1162,8 +1182,7 @@ def planetships():
             return jsonify([])
         if planet is None:
             return jsonify([])
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-
+        
         table = connection["users"]
         userdata = table.find_one(username=user)
         if userdata is None:
@@ -1232,6 +1251,8 @@ def planetships():
 
 @app.route('/loadcorddata', methods=['GET'])
 def loadcorddata():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         x = request.args.get('x', None)
         y = request.args.get('y', None)
@@ -1240,7 +1261,6 @@ def loadcorddata():
         if y is None:
             return jsonify([])
         type = "nothing"
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         row = table.find_one(cords_hor=x, cords_ver=y)
         if row is None:
@@ -1263,12 +1283,13 @@ def loadcorddata():
 
 @app.route('/loaditems', methods=['GET'])
 def loaditems():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         if user is None:
             return jsonify([])
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["items"]
         stack = []
         for row in table.find(owner=user, activated_trx=None):
@@ -1300,6 +1321,8 @@ def loaditems():
         connection.close()
 @app.route('/loadgalaxy', methods=['GET'])
 def loadgalaxy():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         x = request.args.get('x', None)
         y = request.args.get('y', None)
@@ -1338,7 +1361,6 @@ def loadgalaxy():
         except:
             return jsonify([])
             
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["space"]
         explored = []
         for row in table.find(c_hor={'between': [xmin, xmax]}, c_ver={'between': [ymin, ymax]}):
@@ -1389,6 +1411,8 @@ def loadgalaxy():
 
 @app.route('/loadfleetmission', methods=['GET'])
 def loadfleetmission():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         planetid = request.args.get('planetid', None)
         user = request.args.get('user', None)
@@ -1436,7 +1460,6 @@ def loadfleetmission():
                 page = 0
         else:
             page = 0
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         planet_list = []
         if planetid is None and user is not None:
@@ -1811,6 +1834,8 @@ def loadfleetmission():
 
 @app.route('/loadplanet', methods=['GET'])
 def loadplanet():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         id = request.args.get('id', None)
         x = request.args.get('x', None)
@@ -1818,7 +1843,6 @@ def loadplanet():
         if id is None and (x is None or y is None):
             return jsonify([])
             
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         if id is not None:
             row = table.find_one(id=id)
@@ -1892,6 +1916,8 @@ def loadplanet():
     
 @app.route('/transactions', methods=['GET'])
 def transactions():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         limit = request.args.get('limit', 150)
         tr_type = request.args.get('type', None)
@@ -1903,7 +1929,6 @@ def transactions():
             except:
                 limit = 150       
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["transactions"]
         trx_list = []
         if tr_type is None and user is None:
@@ -1935,8 +1960,9 @@ def transactions():
 
 @app.route('/state', methods=['GET'])
 def state():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["status"]
         status = table.find_one(id=1)
         last_steem_block_num = status["last_steem_block_num"]
@@ -1953,10 +1979,11 @@ def state():
 
 @app.route('/season', methods=['GET'])
 def season():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         timestamp = request.args.get('timestamp', None)
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["season"]
         if timestamp is None:
             season = table.find_one(order_by="-end_date")
@@ -1984,6 +2011,8 @@ def season():
 
 @app.route('/seasonranking', methods=['GET'])
 def seasonranking():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         sort = request.args.get('sort', 'total_reward')
         limit = request.args.get('limit', 150)
@@ -1995,7 +2024,6 @@ def seasonranking():
             except:
                 limit = 150     
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["season"]
         
         if timestamp is None:
@@ -2040,6 +2068,8 @@ def seasonranking():
 
 @app.route('/activateditems', methods=['GET'])
 def activateditems():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         planetid = request.args.get('planetid', None)
@@ -2048,8 +2078,7 @@ def activateditems():
         if planetid is None:
             return jsonify([]) 
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-        table_items = connection["items"]
+            table_items = connection["items"]
         stack = []
         for row in table_items.find(owner=user, activated_to=planetid):
             table = connection["shop"]
@@ -2078,6 +2107,8 @@ def activateditems():
 
 @app.route('/missions', methods=['GET'])
 def missions():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         limit = request.args.get('limit', 100)
         user = request.args.get('user', None)
@@ -2093,7 +2124,6 @@ def missions():
             except:
                 limit = 100      
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["missions"]
         mission_list = []  
         
@@ -2190,6 +2220,8 @@ def burnrates():
 
 @app.route('/galaxyplanets', methods=['GET'])
 def galaxplanets():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         limit = request.args.get('limit', 100000)
         after = request.args.get('after', None)
@@ -2205,7 +2237,6 @@ def galaxplanets():
             except:
                 queryDate = datetime.utcnow()
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["planets"]
         planet_list = []  
         
@@ -2228,6 +2259,8 @@ def galaxplanets():
 
 @app.route('/asks', methods=['GET'])
 def asks():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         limit = request.args.get('limit', 100)
         user = request.args.get('user', None)
@@ -2252,7 +2285,6 @@ def asks():
         if order == "desc":
             orderkey = "-"  
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["asks"]
         ask_list = []  
         
@@ -2298,9 +2330,9 @@ def asks():
 
 @app.route('/lowestasks', methods=['GET'])
 def lowestasks():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-
         sql =    """SELECT * FROM (SELECT * FROM `asks` WHERE cancel_trx is null AND buy_trx is null and sold is null and failed is null) t5
                     INNER JOIN
                         (SELECT utype utype3, min(price) price3, MIN(date) date3
@@ -2337,13 +2369,14 @@ def lowestasks():
 
 @app.route('/missionoverview', methods=['GET'])
 def missionoverview():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user',None)
 
         if user is None:
             return jsonify([])
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["users"]
         userdata = table.find_one(username=user)
         if userdata is None:
@@ -2400,12 +2433,13 @@ def missionoverview():
 
 @app.route("/dailybattles", methods=['GET'])
 def dailybattles():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         sql = """SELECT mission_id, date, attacker, defender, (coal+2*ore+4*copper+8*uranium) points, result
-                FROM battleresults
-                WHERE date > CURRENT_TIMESTAMP - INTERVAL '24' HOUR
-                    AND (coal+2*ore+4*copper+8*uranium) = (SELECT MAX(coal+2*ore+4*copper+8*uranium) points
+            FROM battleresults
+            WHERE date > CURRENT_TIMESTAMP - INTERVAL '24' HOUR
+                AND (coal+2*ore+4*copper+8*uranium) = (SELECT MAX(coal+2*ore+4*copper+8*uranium) points
                                                             FROM battleresults
                                                             WHERE date > CURRENT_TIMESTAMP - INTERVAL '24' HOUR)"""
         result = connection.query(sql)
@@ -2431,6 +2465,8 @@ def dailybattles():
 
 @app.route("/stardusttransfers", methods=['GET'])
 def stardusttransfers():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         after_id = request.args.get('after_id', None)
         user = request.args.get('user',None)
@@ -2440,8 +2476,7 @@ def stardusttransfers():
         if after_id is None:
             return jsonify([])     
 
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-        sql = """SELECT * FROM stardust WHERE id > """+after_id+""" AND (from_user = '"""+user+"""' OR to_user = '"""+user+"""') AND tr_type='transfer' ORDER BY id DESC"""
+            sql = """SELECT * FROM stardust WHERE id > """+after_id+""" AND (from_user = '"""+user+"""' OR to_user = '"""+user+"""') AND tr_type='transfer' ORDER BY id DESC"""
         result = connection.query(sql)
         transaction_list = []
         for transaction in result:
@@ -2457,6 +2492,8 @@ def stardusttransfers():
 
 @app.route('/planetshipyard', methods=['GET'])
 def planetshpiyard():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         planet = request.args.get('planet', None)
         user = request.args.get('user', None)
@@ -2466,8 +2503,7 @@ def planetshpiyard():
             return jsonify([])
         if planet is None:
             return jsonify([])
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-
+        
         table = connection["users"]
         userdata = table.find_one(username=user)
         if userdata is None:
@@ -2556,6 +2592,8 @@ def planetshpiyard():
 
 @app.route('/missioninfo', methods=['GET'])
 def missioninfo():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         planet = request.args.get('planet', None)
         user = request.args.get('user', None)
@@ -2564,8 +2602,6 @@ def missioninfo():
             return jsonify({})
         if planet is None:
             return jsonify({})
-
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
 
         table = connection["users"]
         userdata = table.find_one(username=user)
@@ -2626,12 +2662,13 @@ def missioninfo():
 
 @app.route('/buffs', methods=['GET'])
 def buffs():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         user = request.args.get('user', None)
         if user is None:
             return jsonify([])
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         table = connection["users"]
         userdata = table.find_one(username=user)
     
@@ -2655,6 +2692,8 @@ def buffs():
 
 @app.route('/yamatotracker', methods=['GET'])
 def yamatotracker():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         yamato_list =[]
         now = datetime.utcnow()
@@ -2664,7 +2703,6 @@ def yamatotracker():
         if busy is None:
             return jsonify([])
         
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
         if busy == "1":
             yamatodata = connection.query('SELECT * FROM `ships` WHERE `type` LIKE "%yamato%" AND `mission_busy_until` > CURRENT_TIMESTAMP ORDER BY `ships`.`mission_busy_until` DESC')
         elif busy == "0":
@@ -2694,10 +2732,11 @@ def yamatotracker():
 
 @app.route('/marketstats', methods=['GET'])
 def marketstats():
+    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
+    
     try:
         marketdata = {}
-        connection = dataset.connect(databaseConnector, engine_kwargs={'pool_recycle': 3600})
-        
+            
         data = connection.query('SELECT COUNT(*) FROM `asks` WHERE `category` = "ship" AND `sold` IS NULL AND `cancel_trx` IS NULL' )
         for row in data:
             ships_on_market = int(row['COUNT(*)'])
