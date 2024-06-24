@@ -15,7 +15,7 @@ import sys
 from random import randint
 from utils.ncutils import checkifuser, findfreeplanet, shipdata, connectdb, get_shipdata,get_planetdata,get_distance,create_planet
 from utils.ncutils import find_starterplanet_coords, generateUid, uid_from_block, write_spacedb, get_ship_data, get_item_data, get_planet_data, update_transaction_status, update_transfer_status
-from utils.ncutils import get_custom_json_id, get_transfer_id, get_mission_data, get_ask_data, read_parameter
+from utils.ncutils import get_mission_data, get_ask_data, read_parameter
 from commands import move_ship, explorespace, transport_resources, offload_deploy, offload_return, get_resource_levels, build_ship, enhance
 from commands import upgrade, activate, adduser, buy, explore, finish_building, finish_skill, gift_item, update_ranking, gift_planet, deploy_ships, rename_planet
 from commands import update_shop, attack, battle_return, cancel, support, enable, charge, finish_charging, offload_deploy_mission, siege
@@ -27,7 +27,7 @@ from commands import respawn, burn, issuestardust, ask, cancel_ask, fill_ask, bu
 def get_transaction():
     # get all open transactions from the database
     # Connect to the database
-    parameter = read_parameter();
+    parameter = read_parameter()
     connection = connectdb()
     transactions = connection["transactions"]
     trx = transactions.find_one(tr_status=0, order_by='id')
@@ -539,47 +539,47 @@ def get_transaction():
     if not transaction_valid:
         update_transaction_status(False, id)
 
-def get_transfer(trx):
+# def get_transfer(trx):
 
-    id = trx['id']
-    user = trx['user']
-    memo = trx['memo']
-    trx_id = trx['trx']
-    block_num = trx['block_num']
-    time_now = trx['date']
-    amount = Amount(trx["amount"])
-    transfer_id = get_transfer_id()
-    at_symbol_pos = memo.find('@')
-    if at_symbol_pos < 0:
-        print("memo does not start with %s@: %s" % (transfer_id, memo))
-        update_transfer_status(False, id)
-        return False    
-    if len(memo) < at_symbol_pos + 1 or memo[:at_symbol_pos] != transfer_id:
-        print("memo does not start with %s@: %s" % (transfer_id, memo[:at_symbol_pos + 1]))
-        update_transfer_status(False, id)
-        return False
-    try:
-        data = json.loads(memo[at_symbol_pos + 1:])
-    except:
-        try:
-            data = ast.literal_eval(memo[at_symbol_pos + 1::])
-        except:
-            print("memo is not a json %s" % memo[at_symbol_pos + 1::])
-            update_transfer_status(False, id)
-            return False         
-    transfer_valid = True
-    if "command" not in data:
-        print("command not in data: %s" % str(data))
-        update_transfer_status(False, id)
-        return False            
-    if data["type"] == "auctionbid":
-        update_transfer_status(True, id)
-        return True
-    elif data["type"] == "buy":
-        command = data["command"]
-        if command["user"] == "":
-            command["user"] = user
-        success = buy(command, amount, time_now, block_num, trx_id, id)
-        print("%s: %s - %s -> sucess: %s" % (str(time_now), user, data["type"], str(success)))
+#     id = trx['id']
+#     user = trx['user']
+#     memo = trx['memo']
+#     trx_id = trx['trx']
+#     block_num = trx['block_num']
+#     time_now = trx['date']
+#     amount = Amount(trx["amount"])
+#     transfer_id = get_transfer_id()
+#     at_symbol_pos = memo.find('@')
+#     if at_symbol_pos < 0:
+#         print("memo does not start with %s@: %s" % (transfer_id, memo))
+#         update_transfer_status(False, id)
+#         return False    
+#     if len(memo) < at_symbol_pos + 1 or memo[:at_symbol_pos] != transfer_id:
+#         print("memo does not start with %s@: %s" % (transfer_id, memo[:at_symbol_pos + 1]))
+#         update_transfer_status(False, id)
+#         return False
+#     try:
+#         data = json.loads(memo[at_symbol_pos + 1:])
+#     except:
+#         try:
+#             data = ast.literal_eval(memo[at_symbol_pos + 1::])
+#         except:
+#             print("memo is not a json %s" % memo[at_symbol_pos + 1::])
+#             update_transfer_status(False, id)
+#             return False         
+#     transfer_valid = True
+#     if "command" not in data:
+#         print("command not in data: %s" % str(data))
+#         update_transfer_status(False, id)
+#         return False            
+#     if data["type"] == "auctionbid":
+#         update_transfer_status(True, id)
+#         return True
+#     elif data["type"] == "buy":
+#         command = data["command"]
+#         if command["user"] == "":
+#             command["user"] = user
+#         success = buy(command, amount, time_now, block_num, trx_id, id)
+#         print("%s: %s - %s -> sucess: %s" % (str(time_now), user, data["type"], str(success)))
 
 get_transaction()

@@ -10,15 +10,6 @@ import os
 import dataset
 from datetime import datetime, timedelta
 
-def read_config(config_file):
-    config_file = os.path.abspath(os.path.join(os.path.join( os.path.dirname(__file__) , '..'), config_file ) )
-    if not os.path.isfile(config_file):
-        raise Exception("config.json is missing!")
-    else:
-        with open(config_file) as json_data_file:
-            config_data = json.load(json_data_file)
-    return config_data
-
 def connectdb():
     databaseConnector = os.getenv('DB_CONNECTOR')
     db = dataset.connect(databaseConnector)
@@ -173,80 +164,82 @@ def get_random_img(max_img_number):
     return get_random_range(1, max_img_number)
 
 def read_parameter():
-    parameter = {}
-    upgrade_costs = {}
-    upgrade_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "explorership",
-                    "transportship", "scout", "patrol", "cutter", "corvette", "frigate", "destroyer", "cruiser", "battlecruiser",
-                    "carrier", "dreadnought","yamato", "yamato1", "yamato2", "yamato3","yamato4","yamato5","yamato6","yamato7","yamato8","yamato9","yamato10","yamato11","yamato12",
-                      "yamato13","yamato14","yamato15","yamato16","yamato17","yamato18","yamato19","yamato20","oremine", "coppermine", "coalmine", "uraniummine", "base",
-                    "researchcenter", "bunker", "shieldgenerator", "explorership1", "transportship1", "transportship2"]
-    
-    connection = connectdb()
-    table = connection["upgradecosts"]
-    for key in upgrade_keys:
-        upgrade_costs[key] = {}
-        for x in range (1,21):
-            result = table.find_one(name=key, level=x)
+    try:
+        parameter = {}
+        upgrade_costs = {}
+        upgrade_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "explorership",
+                        "transportship", "scout", "patrol", "cutter", "corvette", "frigate", "destroyer", "cruiser", "battlecruiser",
+                        "carrier", "dreadnought","yamato", "yamato1", "yamato2", "yamato3","yamato4","yamato5","yamato6","yamato7","yamato8","yamato9","yamato10","yamato11","yamato12",
+                        "yamato13","yamato14","yamato15","yamato16","yamato17","yamato18","yamato19","yamato20","oremine", "coppermine", "coalmine", "uraniummine", "base",
+                        "researchcenter", "bunker", "shieldgenerator", "explorership1", "transportship1", "transportship2"]
+        
+        connection = connectdb()
+        table = connection["upgradecosts"]
+        for key in upgrade_keys:
+            upgrade_costs[key] = {}
+            for x in range (1,21):
+                result = table.find_one(name=key, level=x)
+                if result is not None:
+                    upgrade_costs[key][str(x)] = result
+        parameter["upgrade_costs"] = upgrade_costs
+        skill_costs = {}
+        skill_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "Explorer",
+                        "Transporter", "Scout", "Patrol", "Cutter", "Corvette", "Frigate", "Destroyer", "Cruiser", "Battlecruiser",
+                        "Carrier", "Dreadnought", "Yamato", "oremine", "coppermine", "coalmine", "uraniummine", "base", "researchcenter",
+                        "orebooster", "coalbooster", "copperbooster", "uraniumbooster", "missioncontrol", "bunker",
+                        "enlargebunker", "structureimprove", "armorimprove", "shieldimprove",
+                        "rocketimprove", "bulletimprove", "laserimprove", "regenerationbonus", "repairbonus",
+                        "shieldgenerator", "siegeprolongation", "depotincrease"]
+        
+        # connection = connectdb()
+        table = connection["skillcosts"]
+        for key in skill_keys:
+            skill_costs[key] = {}
+            for x in range (1,21):
+                result = table.find_one(name=key, level=x)
+                if result is not None:
+                    skill_costs[key][str(x)] = result
+        
+        parameter["skill_costs"] = skill_costs
+        
+        
+        
+                # Read a single record
+        production_rates = {}
+        prodcution_keys = ["coalmine", "oremine", "coppermine", "uraniummine", "coaldepot", "oredepot", "copperdepot", "uraniumdepot"]
+        
+        # connection = connectdb()
+        table = connection["productivity"]
+        for key in prodcution_keys:
+            production_rates[key] = {}
+            for x in range (0,21):
+                result = table.find_one(name=key, level=x)
+                if result is not None:
+                    production_rates[key][str(x)] = result
+                    
+        parameter["production_rates"] = production_rates
+        
+        planet_rarity = {}
+        # connection = connectdb()
+        table = connection["planetlevels"]
+        for data in table.find():
+            planet_rarity[data["rarity"]] = data
+        
+        parameter["planet_rarity"] = planet_rarity
+        
+        shipstats = {}
+        
+        # connection = connectdb()
+        table = connection["shipstats"]
+        for result in table.find():
             if result is not None:
-                upgrade_costs[key][str(x)] = result
-    parameter["upgrade_costs"] = upgrade_costs
-    skill_costs = {}
-    skill_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "Explorer",
-                    "Transporter", "Scout", "Patrol", "Cutter", "Corvette", "Frigate", "Destroyer", "Cruiser", "Battlecruiser",
-                    "Carrier", "Dreadnought", "Yamato", "oremine", "coppermine", "coalmine", "uraniummine", "base", "researchcenter",
-                    "orebooster", "coalbooster", "copperbooster", "uraniumbooster", "missioncontrol", "bunker",
-                    "enlargebunker", "structureimprove", "armorimprove", "shieldimprove",
-                    "rocketimprove", "bulletimprove", "laserimprove", "regenerationbonus", "repairbonus",
-                    "shieldgenerator", "siegeprolongation", "depotincrease"]
-    
-    connection = connectdb()
-    table = connection["skillcosts"]
-    for key in skill_keys:
-        skill_costs[key] = {}
-        for x in range (1,21):
-            result = table.find_one(name=key, level=x)
-            if result is not None:
-                skill_costs[key][str(x)] = result
-    
-    parameter["skill_costs"] = skill_costs
-    
-    
-    
-            # Read a single record
-    production_rates = {}
-    prodcution_keys = ["coalmine", "oremine", "coppermine", "uraniummine", "coaldepot", "oredepot", "copperdepot", "uraniumdepot"]
-    
-    connection = connectdb()
-    table = connection["productivity"]
-    for key in prodcution_keys:
-        production_rates[key] = {}
-        for x in range (0,21):
-            result = table.find_one(name=key, level=x)
-            if result is not None:
-                production_rates[key][str(x)] = result
-                
-    parameter["production_rates"] = production_rates
-    
-    planet_rarity = {}
-    connection = connectdb()
-    table = connection["planetlevels"]
-    for data in table.find():
-        planet_rarity[data["rarity"]] = data
-    
-    parameter["planet_rarity"] = planet_rarity
-    
-    shipstats = {}
-    
-    connection = connectdb()
-    table = connection["shipstats"]
-    for result in table.find():
-        if result is not None:
-            shipstats[result["name"]] = result
-                
-    parameter["shipstats"] = shipstats  
-    
-    connection.executable.close()
-    return parameter
+                shipstats[result["name"]] = result
+                    
+        parameter["shipstats"] = shipstats  
+        
+        return parameter
+    finally:
+        connection.close()
 
 
 def coords_to_solarsystem(x,y):
@@ -296,36 +289,38 @@ def coords_to_donut(x, y):
     return max(abs(x_galaxy), abs(y_galaxy)) + 1
 
 def get_free_solarsystem_in_donat(coords_list, solarsystem_list, region_list, galaxy_x, galaxy_y, d, add_legendary=False):
-    connection = connectdb()
-    offset_x, offset_y = galaxy_to_coords(galaxy_x, galaxy_y)
-    region_offset_x, region_offset_y = coords_to_region(offset_x, offset_y)
-    table = connection['planets']
-    
-    free_region_found = False
-    free_solarsystem_found = False
-    try_list = []
-    n = get_donut_regions(d)
-    while not free_region_found:
+    try:
+        connection = connectdb()
+        offset_x, offset_y = galaxy_to_coords(galaxy_x, galaxy_y)
+        region_offset_x, region_offset_y = coords_to_region(offset_x, offset_y)
+        table = connection['planets']
         
-        x_region, y_region = get_random_region_in_donut(d)
-        x_region += region_offset_x
-        y_region += region_offset_y
-        # print("donut %d, x,y: %d, %d" % (d, x_region, y_region))
-        if add_legendary and (x_region, y_region) in region_list:
-            continue
-        if (x_region, y_region) not in try_list:
-            try_list.append((x_region, y_region))
-        xy_list = []
-        while len(xy_list) < 121:
-            x_solarsystem, y_solarsystem = get_random_solarsystem_in_region(x_region, y_region)
+        free_region_found = False
+        free_solarsystem_found = False
+        try_list = []
+        n = get_donut_regions(d)
+        while not free_region_found:
             
-            if (x_solarsystem, y_solarsystem) not in solarsystem_list:
-                return x_solarsystem, y_solarsystem
-            if (x_solarsystem, y_solarsystem) not in xy_list:
-                xy_list.append((x_solarsystem, y_solarsystem))
-        if len(try_list) == n:
-            return None, None
-        
+            x_region, y_region = get_random_region_in_donut(d)
+            x_region += region_offset_x
+            y_region += region_offset_y
+            # print("donut %d, x,y: %d, %d" % (d, x_region, y_region))
+            if add_legendary and (x_region, y_region) in region_list:
+                continue
+            if (x_region, y_region) not in try_list:
+                try_list.append((x_region, y_region))
+            xy_list = []
+            while len(xy_list) < 121:
+                x_solarsystem, y_solarsystem = get_random_solarsystem_in_region(x_region, y_region)
+                
+                if (x_solarsystem, y_solarsystem) not in solarsystem_list:
+                    return x_solarsystem, y_solarsystem
+                if (x_solarsystem, y_solarsystem) not in xy_list:
+                    xy_list.append((x_solarsystem, y_solarsystem))
+            if len(try_list) == n:
+                return None, None
+    finally:
+        connection.close()
 
 def get_random_region_in_donut(d):
     if d == 1:
@@ -466,44 +461,51 @@ def get_building_parameter(building):
     
 
 def write_spacedb(c_hor,c_ver,user, time_now, block_num, trx_id, uid=None):
-    connection = connectdb()
-    table = connection['space']
-    if uid is None:
-        
-        table.insert({"user": user, "date": time_now, "c_hor": c_hor, "c_ver": c_ver,
-                      "trx_id": trx_id, "block_num": block_num})
-    else:
-        table.insert({"user": user, "date": time_now, "c_hor": c_hor, "c_ver": c_ver,
-                      "trx_id": trx_id, "block_num": block_num, "planet_id": uid})        
-
+    try:
+        connection = connectdb()
+        table = connection['space']
+        if uid is None:
+            
+            table.insert({"user": user, "date": time_now, "c_hor": c_hor, "c_ver": c_ver,
+                            "trx_id": trx_id, "block_num": block_num})
+        else:
+            table.insert({"user": user, "date": time_now, "c_hor": c_hor, "c_ver": c_ver,
+                            "trx_id": trx_id, "block_num": block_num, "planet_id": uid})        
+    finally:
+        connection.close()
 
 def create_planet(x,y, uid, time_now, block_num, trx_id):
-    print ("creating a new planet")
-    connection = connectdb()
-    table = connection['planets']
-    table.insert({"id": uid, "img_id": 0, "name": 0, "bonus": 0, "planet_type": 0, "user": 0, "qyt_uranium": 0, 
-                  "qyt_ore": 0, "qyt_copper": 0, "qyt_coal": 0, "level_uranium": 0, "level_ore": 0,
-                  "level_copper": 0, "level_coal": 0, "level_ship": 0, "ship_current": 0, "level_base": 0,
-                  "level_research": 0, "level_coaldepot": 0, "level_oredepot": 0, "level_copperdepot": 0,
-                  "level_uraniumdepot": 0, "level_shipyard": 0, "ore_busy": time_now, "copper_busy": time_now,
-                  "coal_busy": time_now, "uranium_busy": time_now, "research_busy": time_now, "base_busy": time_now,
-                  "shipyard_busy": time_now, "oredepot_busy": time_now, "coaldepot_busy": time_now, "copperdepot_busy": time_now,
-                  "uraniumdepot_busy": time_now, "last_update": time_now, "date_disc": time_now, "cords_hor": x, "cords_ver": y,
-                  "block_num": block_num, "trx_id": trx_id})
+    try:
+        print ("creating a new planet")
+        connection = connectdb()
+        table = connection['planets']
+        table.insert({"id": uid, "img_id": 0, "name": 0, "bonus": 0, "planet_type": 0, "user": 0, "qyt_uranium": 0, 
+                    "qyt_ore": 0, "qyt_copper": 0, "qyt_coal": 0, "level_uranium": 0, "level_ore": 0,
+                    "level_copper": 0, "level_coal": 0, "level_ship": 0, "ship_current": 0, "level_base": 0,
+                    "level_research": 0, "level_coaldepot": 0, "level_oredepot": 0, "level_copperdepot": 0,
+                    "level_uraniumdepot": 0, "level_shipyard": 0, "ore_busy": time_now, "copper_busy": time_now,
+                    "coal_busy": time_now, "uranium_busy": time_now, "research_busy": time_now, "base_busy": time_now,
+                    "shipyard_busy": time_now, "oredepot_busy": time_now, "coaldepot_busy": time_now, "copperdepot_busy": time_now,
+                    "uraniumdepot_busy": time_now, "last_update": time_now, "date_disc": time_now, "cords_hor": x, "cords_ver": y,
+                    "block_num": block_num, "trx_id": trx_id})
+    finally:
+        connection.close()
 
 def get_planetid (c_hor,c_ver):
-    connection = connectdb()
-    table = connection["planets"]     
-    result = table.find_one(cords_hor=c_hor, cords_ver=c_ver)
-    if result is None:
-        return(None)
-    else:
-        #print (result)
-        planetid = result['id']
-        return (planetid)
+    try:
+        connection = connectdb()
+        table = connection["planets"]     
+        result = table.find_one(cords_hor=c_hor, cords_ver=c_ver)
+        if result is None:
+            return(None)
+        else:
+            #print (result)
+            planetid = result['id']
+            return (planetid)
+    finally:
+        connection.close()
 
 def get_distance (c_hor1,c_ver1,c_hor2,c_ver2):
-
     return (hypot(c_hor2-c_hor1,c_ver2-c_ver1))
 
 def get_flight_param(shipstats,distance,apply_battlespeed = False):
@@ -519,32 +521,37 @@ def get_flight_param(shipstats,distance,apply_battlespeed = False):
     return (uranium_consumption, flight_duration)
 
 def shipdata(shipid):
-    connection = connectdb()
-    table = connection["ships"]
-    result = table.find_one(id=shipid)
-    return result
-
+    try:
+        connection = connectdb()
+        table = connection["ships"]
+        result = table.find_one(id=shipid)
+        return result
+    finally:
+        connection.close()
 
 def get_shipdata(shipid):
-    connection = connectdb()
-    table = connection["ships"]
-    result = table.find_one(id=shipid)    
-    if result is None:
-        return None
-    else:
-        type = result['type']
-        level = result['level']
-        user = result['user']
-        cords_hor = result['cords_hor']
-        cords_ver = result['cords_ver']
-        qty_copper = result['qyt_copper']
-        qty_uranium = result['qyt_uranium']
-        qty_coal = result['qyt_coal']
-        qty_ore = result['qyt_ore']
-        busy_until = result['busy_until']
-        mission_id = result['mission_id']
-        home_planet_id = result['home_planet_id']
-        return (type,level,user,cords_hor,cords_ver,qty_copper,qty_uranium,qty_coal,qty_ore,busy_until, mission_id, home_planet_id)
+    try:
+        connection = connectdb()
+        table = connection["ships"]
+        result = table.find_one(id=shipid)    
+        if result is None:
+            return None
+        else:
+            type = result['type']
+            level = result['level']
+            user = result['user']
+            cords_hor = result['cords_hor']
+            cords_ver = result['cords_ver']
+            qty_copper = result['qyt_copper']
+            qty_uranium = result['qyt_uranium']
+            qty_coal = result['qyt_coal']
+            qty_ore = result['qyt_ore']
+            busy_until = result['busy_until']
+            mission_id = result['mission_id']
+            home_planet_id = result['home_planet_id']
+            return (type,level,user,cords_hor,cords_ver,qty_copper,qty_uranium,qty_coal,qty_ore,busy_until, mission_id, home_planet_id)
+    finally:
+        connection.close()
 
 def get_mission_data(id,var):
     # Connect to the database
@@ -557,12 +564,12 @@ def get_mission_data(id,var):
             return None                
         #print(results)
         data = results[str(var)]
-        connection.executable.close()
+        connection.close()
         return(data)
     except:
         return None
     finally:
-        connection.executable.close()    
+        connection.close()    
 
 def get_ask_data(id,var):
     # Connect to the database
@@ -575,12 +582,12 @@ def get_ask_data(id,var):
             return None                
         #print(results)
         data = results[str(var)]
-        connection.executable.close()
+        connection.close()
         return(data)
     except:
         return None
     finally:
-        connection.executable.close()    
+        connection.close()    
 
 def get_ship_data(id,var):
     # Connect to the database
@@ -593,13 +600,12 @@ def get_ship_data(id,var):
             return None                
         #print(results)
         data = results[str(var)]
-        connection.executable.close()
+        connection.close()
         return(data)
     except:
         return None
     finally:
-        connection.executable.close()
-
+        connection.close()
 
 def get_item_data(uid,var):
     # Connect to the database
@@ -612,12 +618,12 @@ def get_item_data(uid,var):
             return None                
         #print(results)
         data = results[str(var)]
-        connection.executable.close()
+        connection.close()
         return(data)
     except:
         return None
     finally:
-        connection.executable.close()
+        connection.close()
 
 def get_planet_data(id,var):
     # get the productivity data from the SQL DB
@@ -633,214 +639,232 @@ def get_planet_data(id,var):
     except:
         return None
     finally:
-        connection.executable.close()  
+        connection.close()  
 
 def update_transaction_status(success, id, error=None):
-    connection = connectdb()
-    table = connection["transactions"]
-    if success:
-        tr_status = 1
-    else:
-        tr_status = 2
-    if error is None:
-        table.update({"id": id, "tr_status": tr_status}, ["id"])
-    else:
-        table.update({"id": id, "tr_status": tr_status, "error": error[:256]}, ["id"])
-    connection.executable.close()   
+    try:
+        connection = connectdb()
+        table = connection["transactions"]
+        if success:
+            tr_status = 1
+        else:
+            tr_status = 2
+        if error is None:
+            table.update({"id": id, "tr_status": tr_status}, ["id"])
+        else:
+            table.update({"id": id, "tr_status": tr_status, "error": error[:256]}, ["id"])
+    finally:
+        connection.close()   
 
 def update_transfer_status(success, id, error=None):
-    connection = connectdb()
-    table = connection["transfers"]
-    if success:
-        tr_status = 1
-    else:
-        tr_status = 2
-    if error is None:
-        table.update({"id": id, "tr_status": tr_status}, ["id"])
-    else:
-        table.update({"id": id, "tr_status": tr_status, "error": error[:256]}, ["id"])    
-    connection.executable.close()       
+    try:
+        connection = connectdb()
+        table = connection["transfers"]
+        if success:
+            tr_status = 1
+        else:
+            tr_status = 2
+        if error is None:
+            table.update({"id": id, "tr_status": tr_status}, ["id"])
+        else:
+            table.update({"id": id, "tr_status": tr_status, "error": error[:256]}, ["id"])    
+    finally:
+        connection.close()
 
 def get_planetdata(planetid):
-    connection = connectdb()
-    table = connection["planets"]
-    result = table.find_one(id=planetid)     
-    if result is None:
-        return None
-    else:
-        print (result)
-        id = result['id']
-        name = result['name']
-        bonus = result['bonus']
-        planet_type = result['planet_type']
-        user = result['user']
-        cords_hor = result['cords_hor']
-        cords_ver = result['cords_ver']
-        qty_copper = result['qyt_copper']
-        qty_uranium = result['qyt_uranium']
-        qty_coal = result['qyt_coal']
-        qty_ore = result['qyt_ore']
-        level_uranium = result['level_uranium']
-        level_copper = result['level_copper']
-        level_coal = result['level_coal']
-        level_ore = result['level_ore']
-        level_ship = result['level_ship']
-        level_base = result['level_base']
-        level_research = result['level_research']
-        level_coaldepot = result['level_coaldepot']
-        level_oredepot = result['level_oredepot']
-        level_uraniumdepot = result['level_uraniumdepot']
-        level_copperdepot = result['level_copperdepot']
-        level_shipyard = result['level_shipyard']
-        ore_busy = result['ore_busy']
-        copper_busy = result['copper_busy']
-        coal_busy = result['coal_busy']
-        uranium_busy = result['uranium_busy']
-        research_busy = result['research_busy']
-        base_busy = result['base_busy']
-        shipyard_busy = result['shipyard_busy']
-        oredepot_busy = result['oredepot_busy']
-        copperdepot_busy = result['copperdepot_busy']
-        coaldepot_busy = result['coaldepot_busy']
-        uraniumdepot_busy = result['uraniumdepot_busy']
-        last_update = result['last_update']
+    try:
+        connection = connectdb()
+        table = connection["planets"]
+        result = table.find_one(id=planetid)     
+        if result is None:
+            return None
+        else:
+            print (result)
+            id = result['id']
+            name = result['name']
+            bonus = result['bonus']
+            planet_type = result['planet_type']
+            user = result['user']
+            cords_hor = result['cords_hor']
+            cords_ver = result['cords_ver']
+            qty_copper = result['qyt_copper']
+            qty_uranium = result['qyt_uranium']
+            qty_coal = result['qyt_coal']
+            qty_ore = result['qyt_ore']
+            level_uranium = result['level_uranium']
+            level_copper = result['level_copper']
+            level_coal = result['level_coal']
+            level_ore = result['level_ore']
+            level_ship = result['level_ship']
+            level_base = result['level_base']
+            level_research = result['level_research']
+            level_coaldepot = result['level_coaldepot']
+            level_oredepot = result['level_oredepot']
+            level_uraniumdepot = result['level_uraniumdepot']
+            level_copperdepot = result['level_copperdepot']
+            level_shipyard = result['level_shipyard']
+            ore_busy = result['ore_busy']
+            copper_busy = result['copper_busy']
+            coal_busy = result['coal_busy']
+            uranium_busy = result['uranium_busy']
+            research_busy = result['research_busy']
+            base_busy = result['base_busy']
+            shipyard_busy = result['shipyard_busy']
+            oredepot_busy = result['oredepot_busy']
+            copperdepot_busy = result['copperdepot_busy']
+            coaldepot_busy = result['coaldepot_busy']
+            uraniumdepot_busy = result['uraniumdepot_busy']
+            last_update = result['last_update']
 
-        return (id,name,bonus,planet_type,user,cords_hor,cords_ver,qty_copper,qty_uranium,qty_coal,qty_ore,level_uranium,level_copper,level_coal,level_ore,level_ship,\
-                level_base,level_research,level_coaldepot,level_oredepot,level_uraniumdepot,level_copperdepot,level_shipyard,ore_busy,copper_busy,coal_busy,uranium_busy,\
-                research_busy,base_busy,shipyard_busy,oredepot_busy,copperdepot_busy,coaldepot_busy,uraniumdepot_busy,last_update)
-
+            return (id,name,bonus,planet_type,user,cords_hor,cords_ver,qty_copper,qty_uranium,qty_coal,qty_ore,level_uranium,level_copper,level_coal,level_ore,level_ship,\
+                    level_base,level_research,level_coaldepot,level_oredepot,level_uraniumdepot,level_copperdepot,level_shipyard,ore_busy,copper_busy,coal_busy,uranium_busy,\
+                    research_busy,base_busy,shipyard_busy,oredepot_busy,copperdepot_busy,coaldepot_busy,uraniumdepot_busy,last_update)
+    finally:
+        connection.close()
 
 def explore_planet(uid, owner, type, bonuslevel, img_id, time_now):
-
-    init_lvl_copper = 0
-    init_lvl_coal = 0
-    init_lvl_ore = 0
-    init_lvl_uranium = 0
-    init_lvl_base = 1
-    init_qty_copper = 0
-    init_qty_coal = 0
-    init_qty_ore = 0
-    init_qty_uranium = 0
-    next_planet_name = {0: "Alpha", 1: "Beta", 2: "Gamma", 3:"Delta", 4: "Epsilon", 5: "Zeta", 6: "Eta",
-                        7: "Theta", 8: "Iota", 9: "Kappa", 10: "Lambda", 11: "Mu", 12: "Nu", 13: "Xi",
-                        14: "Omicron", 15: "Pi", 16: "Rho", 17: "Sigma", 18: "Tau", 19: "Upsilon",
-                        20: "Phi", 21: "Chi", 22: "Psi", 23: "Omega"}
-    
-    connection = connectdb()
-    table = connection["planets"]
-    n_planets = table.count(user=owner)
-    planet_count = table.count(user=owner)
-    planetdata = table.find_one(id=uid)
-    if planetdata is None:
-        return (False)
-    else:
+    try:
+        init_lvl_copper = 0
+        init_lvl_coal = 0
+        init_lvl_ore = 0
+        init_lvl_uranium = 0
+        init_lvl_base = 1
+        init_qty_copper = 0
+        init_qty_coal = 0
+        init_qty_ore = 0
+        init_qty_uranium = 0
+        next_planet_name = {0: "Alpha", 1: "Beta", 2: "Gamma", 3:"Delta", 4: "Epsilon", 5: "Zeta", 6: "Eta",
+                            7: "Theta", 8: "Iota", 9: "Kappa", 10: "Lambda", 11: "Mu", 12: "Nu", 13: "Xi",
+                            14: "Omicron", 15: "Pi", 16: "Rho", 17: "Sigma", 18: "Tau", 19: "Upsilon",
+                            20: "Phi", 21: "Chi", 22: "Psi", 23: "Omega"}
+        
+        connection = connectdb()
         table = connection["planets"]
-        if n_planets > 23:
-            n_planets = 23
-        elif n_planets < 0:
-            n_planets = 0
-        user = planetdata['user']
-
-        if planet_count <= 23:
-            next_name = next_planet_name[n_planets]
+        n_planets = table.count(user=owner)
+        planet_count = table.count(user=owner)
+        planetdata = table.find_one(id=uid)
+        if planetdata is None:
+            return (False)
         else:
-            next_name = "Apeiron-"+str(planet_count)
-
-        if user == "0":
-
-            connection = connectdb()
             table = connection["planets"]
-            table.update({"name": next_name, "user": owner, "planet_type": type, "img_id": img_id,
-                          "bonus": bonuslevel, "qyt_uranium": init_qty_uranium, "level_base": init_lvl_base,
-                          "qyt_ore": init_qty_ore, "qyt_copper": init_qty_copper, "qyt_coal": init_qty_coal,
-                          "level_uranium": init_lvl_uranium, "level_ore": init_lvl_ore, "id": uid}, ["id"])        
-            #enter the new data into the planets database
-                # Read a single record
+            if n_planets > 23:
+                n_planets = 23
+            elif n_planets < 0:
+                n_planets = 0
+            user = planetdata['user']
+
+            if planet_count <= 23:
+                next_name = next_planet_name[n_planets]
+            else:
+                next_name = "Apeiron-"+str(planet_count)
+
+            if user == "0":
+
+                connection = connectdb()
+                table = connection["planets"]
+                table.update({"name": next_name, "user": owner, "planet_type": type, "img_id": img_id,
+                            "bonus": bonuslevel, "qyt_uranium": init_qty_uranium, "level_base": init_lvl_base,
+                            "qyt_ore": init_qty_ore, "qyt_copper": init_qty_copper, "qyt_coal": init_qty_coal,
+                            "level_uranium": init_lvl_uranium, "level_ore": init_lvl_ore, "id": uid}, ["id"])        
+                #enter the new data into the planets database
+                    # Read a single record
 
 
-        return (True)
-
+            return (True)
+    finally:
+        connection.close()
 
 def find_starterplanet_coords(reg_h,reg_v):
-
-    # find a spawn point - generate two random int mumbers in the range of 0 to 10 and substract 5 and than multiply with 11 - these are the mid points of the players starting solar system
-    
-    if int(reg_h)==0:
-        reg_h = get_random_range(-5,5)
-    if int(reg_v)==0:
-        reg_v = get_random_range(-5,5)
-
-    sp_h_add = get_random_range(-5,5)
-    sp_h = int(int(reg_h)*121 +sp_h_add)
-    print(sp_h)
-    sp_v_add = get_random_range(-5,5)
-    sp_v = int(int(reg_v)*121 +sp_v_add)
-    print (sp_v)
-
-    # check in the user db if the spawn points are already taken
-    connection = connectdb()
-    table = connection['users']
-    sp_exist = table.find_one(sp_h=sp_h,sp_v=sp_v )
-
-    # if not - find the final starting coordinates
-    if not sp_exist:
-        print ("Good solar system found")
-        sp_h_add2 = get_random_range(-5,5)
-        sp_h_final = sp_h + sp_h_add2
-        sp_v_add2 = get_random_range(-5,5)     
-        sp_v_final = sp_v + sp_v_add2
-        # check if another plan exists already on these coordinates
-        table = connection['planets']
-        sp_exist = table.find_one(cords_hor=sp_h_final,cords_ver=sp_v_final)
+    try:
+        # find a spawn point - generate two random int mumbers in the range of 0 to 10 and substract 5 and than multiply with 11 - these are the mid points of the players starting solar system
         
+        if int(reg_h)==0:
+            reg_h = get_random_range(-5,5)
+        if int(reg_v)==0:
+            reg_v = get_random_range(-5,5)
+
+        sp_h_add = get_random_range(-5,5)
+        sp_h = int(int(reg_h)*121 +sp_h_add)
+        print(sp_h)
+        sp_v_add = get_random_range(-5,5)
+        sp_v = int(int(reg_v)*121 +sp_v_add)
+        print (sp_v)
+
+        # check in the user db if the spawn points are already taken
+        connection = connectdb()
+        table = connection['users']
+        sp_exist = table.find_one(sp_h=sp_h,sp_v=sp_v )
+
+        # if not - find the final starting coordinates
         if not sp_exist:
-            print (sp_h_final)
-            print (sp_v_final)
-            return(sp_h_final,sp_v_final)
+            print ("Good solar system found")
+            sp_h_add2 = get_random_range(-5,5)
+            sp_h_final = sp_h + sp_h_add2
+            sp_v_add2 = get_random_range(-5,5)     
+            sp_v_final = sp_v + sp_v_add2
+            # check if another plan exists already on these coordinates
+            table = connection['planets']
+            sp_exist = table.find_one(cords_hor=sp_h_final,cords_ver=sp_v_final)
+            
+            if not sp_exist:
+                print (sp_h_final)
+                print (sp_v_final)
+                return(sp_h_final,sp_v_final)
+    finally:
+        connection.close()
 
 def checkifuser(name):
-    # Connect to the database
-    connection = connectdb()
-    table = connection["users"]    
-    result = table.find_one(username=name)
-    if result is None:
-        return (False)
-    else:
-        return (True)
+    try:
+        # Connect to the database
+        connection = connectdb()
+        table = connection["users"]    
+        result = table.find_one(username=name)
+        if result is None:
+            return (False)
+        else:
+            return (True)
+    finally:
+        connection.close()
 
 def findfreespot(time_now):
-    print("Finding a free spot in the galaxy")
-    success = False
-    connection = connectdb()
-    table = connection["planets"]
-    while not success:
-        x = randint(-100,100)
-        y = randint(-100,100)
-        # Connect to the database
-        result = table.find_one(cords_hor=x, cords_ver=y)
-        if result is None:
-            print("no planet on this coordinates")
-            success = True
-        else:
-            print(result["id"])
-    return (x,y)
+    try:
+        print("Finding a free spot in the galaxy")
+        success = False
+        connection = connectdb()
+        table = connection["planets"]
+        while not success:
+            x = randint(-100,100)
+            y = randint(-100,100)
+            # Connect to the database
+            result = table.find_one(cords_hor=x, cords_ver=y)
+            if result is None:
+                print("no planet on this coordinates")
+                success = True
+            else:
+                print(result["id"])
+        return (x,y)
+    finally:
+        connection.close()
 
 def findfreeplanet(time_now):
-    success = False
-    connection = connectdb()
-    table = connection["planets"]    
-    while not success:
-        x = randint(-100,100)
-        y = randint(-100,100)
-        # Connect to the database
-        result = table.find_one(cords_hor=x, cords_ver=y)
-        if result is None:
-            print("no planet on this coordinates")
-        else:
-                if result['user'] == '0':
-                    success = True
-                    print ("Free planet found with coordinates: "+str(x)+"," +str(y))
-                else:
-                    print ("Planet is already taken")
+    try:
+        success = False
+        connection = connectdb()
+        table = connection["planets"]    
+        while not success:
+            x = randint(-100,100)
+            y = randint(-100,100)
+            # Connect to the database
+            result = table.find_one(cords_hor=x, cords_ver=y)
+            if result is None:
+                print("no planet on this coordinates")
+            else:
+                    if result['user'] == '0':
+                        success = True
+                        print ("Free planet found with coordinates: "+str(x)+"," +str(y))
+                    else:
+                        print ("Planet is already taken")
 
-    return (x,y)
+        return (x,y)
+    finally:
+        connection.close()
