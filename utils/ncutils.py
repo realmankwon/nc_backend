@@ -9,6 +9,8 @@ from random import randint
 import os
 import dataset
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+load_dotenv()
 
 def connectdb():
     databaseConnector = os.getenv('DB_CONNECTOR')

@@ -4,10 +4,10 @@ After=syslog.target
 
 [Service]
 Type=simple
-User=root
-Group=root
-WorkingDirectory=/home/nextcolony
-ExecStart=/home/nextcolony/nc.sh
+User=uncommon
+Group=uncommon
+WorkingDirectory=/home/uncommon/project/nc/nc_backend
+ExecStart=/bin/bash -c 'source /home/uncommon/project/nc/nc_backend/venv/bin/activate && /home/uncommon/project/nc/nc_backend/nc.sh'
 SyslogIdentifier=nc
 StandardOutput=syslog
 StandardError=syslog

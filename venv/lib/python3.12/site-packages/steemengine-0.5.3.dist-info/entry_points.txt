@@ -1,0 +1,3 @@
+[console_scripts]
+steemengine = steemengine.cli:cli
+
