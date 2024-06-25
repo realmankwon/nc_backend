@@ -1,0 +1,22 @@
+name: nc-backend-actions-dev
+on:
+  push:
+    branches: [success]
+  pull_request:
+    branches: [success]
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: ssh connect & production
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.TEST_HOST}}
+          username: ${{ secrets.TEST_USERNAME}}
+          password: ${{ secrets.TEST_PASSWORD}}
+          port: ${{ secrets.TEST_PORT}}
+          script: |
+            cd project/nc/nc_backend
+            git pull origin success
