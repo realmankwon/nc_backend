@@ -18,6 +18,9 @@ import re
 from beem import Steem
 from steemengine.market import Wallet
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # config_file = 'config.json'
 # with open(config_file) as json_data_file:
 #     config_data = json.load(json_data_file)
