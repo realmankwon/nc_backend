@@ -177,13 +177,23 @@ def read_parameter():
         
         connection = connectdb()
         table = connection["upgradecosts"]
-        for key in upgrade_keys:
-            upgrade_costs[key] = {}
-            for x in range (1,21):
-                result = table.find_one(name=key, level=x)
-                if result is not None:
-                    upgrade_costs[key][str(x)] = result
+        # 모든 업그레이드 비용 데이터를 한 번에 가져오기
+        results = table.all()
+        
+        upgrade_costs = {key: {} for key in upgrade_keys}
+        
+        # 결과 데이터를 메모리에서 처리
+        for result in results:
+            name = result['name']
+            level = result['level']
+            
+            if name in upgrade_keys:
+                if str(level) not in upgrade_costs[name]:
+                    upgrade_costs[name][str(level)] = result
+
         parameter["upgrade_costs"] = upgrade_costs
+
+
         skill_costs = {}
         skill_keys = ["shipyard", "oredepot", "copperdepot", "coaldepot", "uraniumdepot", "Explorer",
                         "Transporter", "Scout", "Patrol", "Cutter", "Corvette", "Frigate", "Destroyer", "Cruiser", "Battlecruiser",
@@ -193,14 +203,20 @@ def read_parameter():
                         "rocketimprove", "bulletimprove", "laserimprove", "regenerationbonus", "repairbonus",
                         "shieldgenerator", "siegeprolongation", "depotincrease"]
         
-        # connection = connectdb()
+        connection = connectdb()
         table = connection["skillcosts"]
-        for key in skill_keys:
-            skill_costs[key] = {}
-            for x in range (1,21):
-                result = table.find_one(name=key, level=x)
-                if result is not None:
-                    skill_costs[key][str(x)] = result
+        results = table.all()
+        
+        skill_costs = {key: {} for key in skill_keys}
+        
+        # 결과 데이터를 메모리에서 처리
+        for result in results:
+            name = result['name']
+            level = result['level']
+            
+            if name in skill_keys:
+                if str(level) not in skill_costs[name]:
+                    skill_costs[name][str(level)] = result
         
         parameter["skill_costs"] = skill_costs
         
@@ -208,16 +224,40 @@ def read_parameter():
         
                 # Read a single record
         production_rates = {}
-        prodcution_keys = ["coalmine", "oremine", "coppermine", "uraniummine", "coaldepot", "oredepot", "copperdepot", "uraniumdepot"]
+        production_keys = ["coalmine", "oremine", "coppermine", "uraniummine", "coaldepot", "oredepot", "copperdepot", "uraniumdepot"]
         
-        # connection = connectdb()
+        connection = connectdb()
         table = connection["productivity"]
-        for key in prodcution_keys:
-            production_rates[key] = {}
-            for x in range (0,21):
-                result = table.find_one(name=key, level=x)
-                if result is not None:
-                    production_rates[key][str(x)] = result
+        results = table.all()
+        
+        production_rates = {key: {} for key in production_keys}
+        
+        # 결과 데이터를 메모리에서 처리
+        for result in results:
+            name = result['name']
+            level = result['level']
+            
+            if name in production_keys:
+                if str(level) not in production_rates[name]:
+                    production_rates[name][str(level)] = result
+                    
+        parameter["production_rates"] = production_rates
+        
+        planet_rarity = {}
+        connection = connectdb()
+        table = connection["planetlevels"]
+        for data in table.find():
+            planet_rarity[data["rarity"]] = data
+        
+        parameter["planet_rarity"] = planet_rarity
+        
+        shipstats = {}
+        
+        connection = connectdb()
+        table = connection["shipstats"]
+        for result in table.find():
+            if result is not None:
+                shipstats[result["name"]] = result
                     
         parameter["production_rates"] = production_rates
         
