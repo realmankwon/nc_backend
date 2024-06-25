@@ -20,3 +20,5 @@ jobs:
           script: |
             cd project/nc/nc_backend
             git pull origin success
+            sudo systemctl restart nc_api.service
+            sudo systemctl restart nc.service
