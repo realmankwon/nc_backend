@@ -50,7 +50,7 @@ def get_transaction(trx, parameter):
         time_now = trx['date'].replace(tzinfo=None)
         
         success = False
-        if (datetime.utcnow() - time_now).total_seconds() < 12: 
+        if (datetime.datetime.now(datetime.timezone.utc) - time_now).total_seconds() < 12: 
             update_ranking(parameter, time_now)
         check_ships = False
         # if abs((time_now - datetime(2019, 6, 9, 6, 22, 30)).total_seconds()) < 10:
