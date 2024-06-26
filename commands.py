@@ -112,7 +112,7 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
     connection = connectdb()
     
     try:
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)
         c_hor = s_cords_hor
         c_ver = s_cords_ver
@@ -203,7 +203,7 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
                         table = connection["shop"]
                         shopitem = table.find_one(itemid=itemid)
 
-                        seed = get_seed(block_num, trx_id)   
+                        seed = get_seed(trx_id)   
                         set_seed(seed)
                         connection.begin()
                         try:
@@ -311,7 +311,7 @@ def explorespace(planet_id,c_hor,c_ver, ship_name, parameter, time_now, block_nu
 
     print(ship_name)
     
-    seed = get_seed(block_num, trx_id)    
+    seed = get_seed(trx_id)    
     set_seed(seed)
 
     connection = connectdb()
@@ -634,7 +634,7 @@ def transport_resources(ship_list, planet_id, c_hor,c_ver ,qty_coal,qty_ore,qty_
                 ships[ship["type"]] = 1    
         
         
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)    
         mission_id = uid_from_seed("M-")
         print(mission_id)
@@ -985,7 +985,7 @@ def break_siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, bl
             return False        
         
         
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)    
         mission_id = uid_from_seed("M-")
         print(mission_id)
@@ -1266,7 +1266,7 @@ def attack(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_n
             return False        
         
         
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)    
         mission_id = uid_from_seed("M-")
         print(mission_id)
@@ -1562,7 +1562,7 @@ def siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_nu
         print("Siege duration is %.2f h" % siegeduration_h)
 
         
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)    
         mission_id = uid_from_seed("M-")
         print(mission_id)
@@ -1848,7 +1848,7 @@ def support(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_
             return False       
         
         
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)    
         mission_id = uid_from_seed("M-")
         print(mission_id)
@@ -2097,7 +2097,7 @@ def deploy_ships(ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium
             return False    
         
         
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)    
         mission_id = uid_from_seed("M-")
         print(mission_id)
@@ -2768,7 +2768,7 @@ def battle_return(mission_id, to_planet_id, attack_mission_type, parameter, time
     try:
         print("battle_return")
             
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)
         
         table = connection["missions"]
@@ -4384,7 +4384,7 @@ def build_ship(planetid,ship, parameter, time_now, block_num, trx_id):
                 print ("Enough uranium")
 
             return False
-        seed = get_seed(block_num, trx_id) 
+        seed = get_seed(trx_id) 
         set_seed(seed)
         uid_prefix = "S-"
         uid = uid_from_seed(uid_prefix)    
@@ -5325,7 +5325,7 @@ def upgrade_yamato(username, planetid, shiptype, parameter, time_now, block_num,
         fin_qty_stardust = int(stardust_balance) - int(stardust_costs)
 
         # create mission entries
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)    
         mission_id = uid_from_seed("M-")
         print(mission_id)  
@@ -5545,7 +5545,7 @@ def gift_planet(uid, target, parameter, time_now, block_num, trx_id):
             init_qty_ore = 59
             init_qty_uranium = 14        
             
-            seed = get_seed(block_num, trx_id)           
+            seed = get_seed(trx_id)           
             set_seed(seed)
             planetname = 'Alpha'
             img_id = 0
@@ -6140,7 +6140,7 @@ def respawn(planet_id, parameter, time_now, block_num, trx_id):
         table.update(data,['id'])
 
         # Create new planet
-        seed = get_seed(block_num, trx_id)           
+        seed = get_seed(trx_id)           
         set_seed(seed)    
         planetname = 'Novum'
         img_id = 0
@@ -6581,7 +6581,7 @@ def ask(user, category, uid, price, market, parameter, time_now, block_num, trx_
             print("Not supported category: %s" % category)
             return False
 
-        seed = get_seed(block_num, trx_id)    
+        seed = get_seed(trx_id)    
         set_seed(seed)    
         ask_id = uid_from_seed("A-")
         print(ask_id)
@@ -7175,7 +7175,7 @@ def buy(command, amount, time_now, block_num, trx_id, transfer_id):
             return False
         
         
-        seed = get_seed(block_num, trx_id)   
+        seed = get_seed(trx_id)   
         set_seed(seed)
         
         int_amount = int((float(amount) * 100) * 1e8)
@@ -7234,7 +7234,7 @@ def issue(itemid, quantity, target, time_now, block_num, trx_id):
             return False
         
         
-        seed = get_seed(block_num, trx_id)   
+        seed = get_seed(trx_id)   
         set_seed(seed)
         connection.begin()
         try:
