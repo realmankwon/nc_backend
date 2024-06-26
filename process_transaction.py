@@ -526,8 +526,8 @@ def get_transaction(trx, parameter):
         else:
             transaction_valid = False
 
-        delay_min = (datetime.utcnow() - time_now).total_seconds() / 60
-        delay_sec = int((datetime.utcnow() - time_now).total_seconds())
+        delay_min = (datetime.now() - time_now).total_seconds() / 60
+        delay_sec = int((datetime.now() - time_now).total_seconds())
         duration_sec = (time.time() - start_time)
         if delay_min < 1:
             print("%s (+ %d s): %s wants %s (%s, %s, %s)-> sucess: %s (dur. %.2f s)" % (str(time_now), delay_sec, user, tr_type, tr_var1, tr_var2, tr_var3, str(success), duration_sec))
