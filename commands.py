@@ -4856,7 +4856,8 @@ def rename_planet(uid, new_name, parameter, time_now, block_num, trx_id):
     if new_name is None or new_name == "":
         print("Empty name")
         return False
-    if not bool(re.match('^[a-zA-Z0-9\.\-\#\_]+$', new_name)):
+    # if not bool(re.match('^[a-zA-Z0-9\.\-\#\_]+$', new_name)):
+    if not bool(re.match(r'^[a-zA-Z0-9\.\-\#\_]+$', new_name)):
         print("Only A-Za-z0-9.-_#")
         return False        
     if uid in legendary_planets_uid:

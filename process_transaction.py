@@ -26,18 +26,13 @@ load_dotenv()
 # get the productivity data from the SQL DB
 # Connect to the database
 
-def get_transaction():
+def get_transaction(trx, parameter):
     # get all open transactions from the database
     # Connect to the database
-    connection = connectdb()
-    transactions = connection["transactions"]
-    trx = transactions.find_one(tr_status=0, order_by='id')
+    # connection = connectdb()
+    # transactions = connection["transactions"]
+    # trx = transactions.find_one(tr_status=0, order_by='id')
    
-    if trx is None:
-        print('no transaction')
-        return
-
-    parameter = read_parameter()
     start_time = time.time()
 
     id = trx['id']
@@ -588,4 +583,13 @@ def get_transaction():
 #         success = buy(command, amount, time_now, block_num, trx_id, id)
 #         print("%s: %s - %s -> sucess: %s" % (str(time_now), user, data["type"], str(success)))
 
-get_transaction()
+current_time = datetime.now()
+connection = connectdb()
+transactions = connection["transactions"]
+parameter = read_parameter()
+trxs = transactions.find(tr_status=0, order_by='date', _limit=10)
+print("현재 시간:", current_time)
+print("transaction count:", trxs.result_proxy.rowcount)
+
+for transaction in trxs:
+    get_transaction(transaction, parameter)
