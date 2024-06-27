@@ -1,22 +1,17 @@
 from flask import Flask, jsonify, request, render_template, redirect, url_for, session, flash
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
-from collections import OrderedDict
 import os
-import ast
-import json
 import sys
-from prettytable import PrettyTable
+import json
 from datetime import datetime, timedelta, timezone
-import pytz
 import math
-import random
-import logging
-import click
 import dataset
-import re
-from beem import Steem
 from steemengine.market import Wallet
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from process_transaction import get_transaction
+from utils.ncutils import read_parameter, connectdb
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -91,8 +86,9 @@ def main():
 @app.route('/sendCommand', methods=['POST'])
 def SendCommand():
     
-    connection = dataset.connect(databaseConnector, engine_kwargs={'pool_size' : 30, 'pool_recycle': 3600})
+    connection = connectdb()
     try:
+        connection.begin()
         # 현재 시간 얻기
         current_time = datetime.now()
 
@@ -103,11 +99,16 @@ def SendCommand():
         table = connection["transactions"]    
         table.insert({"trx":data.get("trx", ""), "user":data.get("username", ""),"tr_type":data.get("tr_type", ""), "tr_var1": data.get("tr_var1", ""), "tr_var2": data.get("tr_var2", ""), "tr_var3":data.get("tr_var3", ""), "tr_var4": data.get("tr_var4", ""),
                           "tr_var5": data.get("tr_var5", ""), "tr_var6": data.get("tr_var6", ""), "tr_var7":data.get("tr_var7", ""), "tr_var8": data.get("tr_var8", ""), "tr_status": 0, "date": formatted_time})
-           
+        trx = table.find_one(trx = data.get("trx", ""))
+        parameter = read_parameter()
+
+        get_transaction(connection, trx, parameter)
+        connection.commit()
         return jsonify({"message": "Transaction inserted successfully."}), 200
 
     except Exception as err:
         print(f"Error: {err}")
+        connection.rollback()
         return jsonify({"error": "Exception"}), 500
     finally:
         connection.close()

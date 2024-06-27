@@ -26,9 +26,8 @@ load_dotenv()
 # get the productivity data from the SQL DB
 # Connect to the database
 
-def get_transaction(trx, parameter):
-    connection = connectdb()
-
+def get_transaction(connection, trx, parameter):
+    
     try:
         start_time = time.time()
 
@@ -537,7 +536,7 @@ def get_transaction(trx, parameter):
         if not transaction_valid:
             update_transaction_status(False, id)
     finally:
-        connection.close()
+        print("process transaction " + trx_id)
 
 # def get_transfer(trx):
 
@@ -587,7 +586,8 @@ def trigger_data():
     try:
         current_time = datetime.now()
         table = connection["virtualops"]
-        
+        parameter = read_parameter()
+
         for trigger in table.find(tr_status=0, trigger_date={'<=': current_time}, order_by='date', _limit=10):
             connection.begin()
             try:
@@ -596,24 +596,19 @@ def trigger_data():
                             tr_var2=trigger["tr_var2"], tr_var3=trigger["tr_var3"], tr_var4=trigger["tr_var4"], tr_var5=trigger["tr_var5"],
                             tr_var6=trigger["tr_var6"], tr_var7=trigger["tr_var7"], tr_var8=trigger["tr_var8"], tr_status=0 ,date=trigger["trigger_date"],
                             virtualop=1)
-                table2.insert(data)     
+                table2.insert(data)
+                trx = table2.find_one(trx=trigger["parent_trx"])
                 table2 = connection["virtualops"] 
-                table2.update({"id":trigger["id"], "tr_status": 1, "block_date": current_time}, ["id"])   
+                table2.update({"id":trigger["id"], "tr_status": 1, "block_date": current_time}, ["id"])
+
+                get_transaction(connection, trx, parameter)
                 connection.commit()
             except:
                 connection.rollback()
     finally:
         connection.close()
 
-trigger_data()
-
 current_time = datetime.now()
-connection = connectdb()
-transactions = connection["transactions"]
-parameter = read_parameter()
-trxs = transactions.find(tr_status=0, order_by='date', _limit=10)
 print("현재 시간:", current_time)
-print("transaction count:", trxs.result_proxy.rowcount)
 
-for transaction in trxs:
-    get_transaction(transaction, parameter)
+trigger_data()
