@@ -598,14 +598,16 @@ def trigger_data():
                             tr_var6=trigger["tr_var6"], tr_var7=trigger["tr_var7"], tr_var8=trigger["tr_var8"], tr_status=0 ,date=trigger["trigger_date"],
                             virtualop=1)
                 table2.insert(data)
-                trx = table2.find_one(trx=trigger["parent_trx"], tr_type=trigger["tr_type"])
                 table2 = connection["virtualops"] 
                 table2.update({"id":trigger["id"], "tr_status": 1, "block_date": current_time}, ["id"])
 
-                get_transaction(trx, parameter)
                 connection.commit()
             except:
                 connection.rollback()
+            
+            table2 = connection["transactions"]  
+            trx = table2.find_one(trx=trigger["parent_trx"], tr_type=trigger["tr_type"])
+            get_transaction(trx, parameter)
     finally:
         connection.close()
 
