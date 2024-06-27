@@ -88,7 +88,6 @@ def SendCommand():
     
     connection = connectdb()
     try:
-        connection.begin()
         # 현재 시간 얻기
         current_time = datetime.now()
 
@@ -102,8 +101,8 @@ def SendCommand():
         trx = table.find_one(trx = data.get("trx", ""))
         parameter = read_parameter()
 
-        get_transaction(connection, trx, parameter)
-        connection.commit()
+        get_transaction(trx, parameter)
+        
         return jsonify({"message": "Transaction inserted successfully."}), 200
 
     except Exception as err:

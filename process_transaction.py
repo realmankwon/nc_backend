@@ -26,8 +26,8 @@ load_dotenv()
 # get the productivity data from the SQL DB
 # Connect to the database
 
-def get_transaction(connection, trx, parameter):
-    
+def get_transaction(trx, parameter):
+    connection = connectdb()
     try:
         start_time = time.time()
 
@@ -536,6 +536,7 @@ def get_transaction(connection, trx, parameter):
         if not transaction_valid:
             update_transaction_status(False, id)
     finally:
+        connection.close()
         print("process transaction " + trx_id)
 
 # def get_transfer(trx):
@@ -597,11 +598,11 @@ def trigger_data():
                             tr_var6=trigger["tr_var6"], tr_var7=trigger["tr_var7"], tr_var8=trigger["tr_var8"], tr_status=0 ,date=trigger["trigger_date"],
                             virtualop=1)
                 table2.insert(data)
-                trx = table2.find_one(trx=trigger["parent_trx"])
+                trx = table2.find_one(trx=trigger["parent_trx"], tr_type=trigger["tr_type"])
                 table2 = connection["virtualops"] 
                 table2.update({"id":trigger["id"], "tr_status": 1, "block_date": current_time}, ["id"])
 
-                get_transaction(connection, trx, parameter)
+                get_transaction(trx, parameter)
                 connection.commit()
             except:
                 connection.rollback()
