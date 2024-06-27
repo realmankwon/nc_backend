@@ -589,7 +589,7 @@ def trigger_data():
         table = connection["virtualops"]
         parameter = read_parameter()
 
-        for trigger in table.find(tr_status=0, trigger_date={'<=': current_time}, order_by='date', _limit=10):
+        for trigger in table.find(tr_status=0, trigger_date={'<=': current_time}, order_by='trigger_date', _limit=10):
             connection.begin()
             try:
                 table2 = connection["transactions"]  
@@ -602,12 +602,13 @@ def trigger_data():
                 table2.update({"id":trigger["id"], "tr_status": 1, "block_date": current_time}, ["id"])
 
                 connection.commit()
+                table2 = connection["transactions"]  
+                trx = table2.find_one(trx=trigger["parent_trx"], tr_type=trigger["tr_type"])
+                get_transaction(trx, parameter)
             except:
                 connection.rollback()
             
-            table2 = connection["transactions"]  
-            trx = table2.find_one(trx=trigger["parent_trx"], tr_type=trigger["tr_type"])
-            get_transaction(trx, parameter)
+            
     finally:
         connection.close()
 
