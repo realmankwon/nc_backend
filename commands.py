@@ -27,7 +27,7 @@ from battle import apply_damage
 
 def get_seed(trx_id):
     # 현재 시간 얻기
-    current_time = datetime.now()
+    current_time = datetime.now() - timedelta(hours=9)
 
     # 현재 시간을 'YYYY-MM-DD HH:MM:SS' 형식으로 출력
     formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')

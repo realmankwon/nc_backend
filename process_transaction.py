@@ -49,7 +49,7 @@ def get_transaction(connection, trx, parameter):
         time_now = trx['date'].replace(tzinfo=None)
         
         success = False
-        if (datetime.now() - time_now).total_seconds() < 12: 
+        if (datetime.now() - timedelta(hours=9) - time_now).total_seconds() < 12: 
             update_ranking(connection, parameter, time_now)
         check_ships = False
         # if abs((time_now - datetime(2019, 6, 9, 6, 22, 30)).total_seconds()) < 10:
@@ -525,8 +525,8 @@ def get_transaction(connection, trx, parameter):
         else:
             transaction_valid = False
 
-        delay_min = (datetime.now() - time_now).total_seconds() / 60
-        delay_sec = int((datetime.now() - time_now).total_seconds())
+        delay_min = (datetime.now() - timedelta(hours=9) - time_now).total_seconds() / 60
+        delay_sec = int((datetime.now() - timedelta(hours=9) - time_now).total_seconds())
         duration_sec = (time.time() - start_time)
         if delay_min < 1:
             print("%s (+ %d s): %s wants %s (%s, %s, %s)-> sucess: %s (dur. %.2f s)" % (str(time_now), delay_sec, user, tr_type, tr_var1, tr_var2, tr_var3, str(success), duration_sec))
@@ -586,7 +586,7 @@ def get_transaction(connection, trx, parameter):
 def trigger_data():
     connection = connectdb()
     try:
-        current_time = datetime.now()
+        current_time = datetime.now() - timedelta(hours=9)
         table = connection["virtualops"]
         parameter = read_parameter(connection)
 
@@ -615,7 +615,7 @@ def trigger_data():
     finally:
         connection.close()
 
-current_time = datetime.now()
+current_time = datetime.now() - timedelta(hours=9)
 print("현재 시간:", current_time)
 
 trigger_data()
