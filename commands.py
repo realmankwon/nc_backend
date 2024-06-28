@@ -34,12 +34,12 @@ def get_seed(trx_id):
     seed = hashlib.md5((trx_id + formatted_time).encode()).hexdigest() 
     return seed
 
-def move_ship(shipid,cords_hor,cords_ver, mission_id, parameter, time_now):
+def move_ship(connection, shipid,cords_hor,cords_ver, mission_id, parameter, time_now):
     print("move_ship")
     shipstats = parameter["shipstats"]
     
     # Connect to the database
-    connection = connectdb()
+    
     try:
         table = connection["ships"]
         shipdata = table.find_one(id=shipid)
@@ -104,12 +104,12 @@ def move_ship(shipid,cords_hor,cords_ver, mission_id, parameter, time_now):
             print("Not enough uranium on board for the distance")
             return (False)
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_id):
-    (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,mission_id_tmp, home_planet_id) = get_shipdata(shipid)
-    connection = connectdb()
+def explore(connection, shipid, planet_id, mission_id, parameter, time_now, block_num, trx_id):
+    (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,mission_id_tmp, home_planet_id) = get_shipdata(connection, shipid)
+    
     
     try:
         seed = get_seed(trx_id)    
@@ -119,7 +119,7 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
         
         uid_prefix = "P-"
         
-        target_planet_id = get_planetid (c_hor,c_ver)
+        target_planet_id = get_planetid (connection, c_hor,c_ver)
         table = connection['space']
         
         space_data = table.find_one(c_hor=int(c_hor), c_ver=int(c_ver))    
@@ -134,7 +134,7 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
             planetowner = planet_data['user']
             
             if time_now >= datetime(2019, 5, 3, 7, 40, 0):
-                move_ship(shipid,cords_hor,cords_ver, mission_id, parameter, time_now)
+                move_ship(connection,shipid,cords_hor,cords_ver, mission_id, parameter, time_now)
             else:
                 table = connection["virtualops"]    
                 table.insert({"tr_status":0, "tr_type":"2", "tr_var1": shipid, "tr_var2": str(cords_hor), "tr_var3":str(cords_ver), "tr_var4": mission_id,
@@ -162,7 +162,7 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
         
         if get_is_empty_space(find_prob):
             print ("no planet found")
-            write_spacedb(c_hor,c_ver,s_user, time_now, block_num, trx_id)
+            write_spacedb(connection, c_hor,c_ver,s_user, time_now, block_num, trx_id)
             if get_explorer_not_broke():
                             
                 # Stardust Found
@@ -183,15 +183,15 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
                     else: 
                         current_stardust = 0
                     
-                    connection.begin()
+                    
                     try:
                         new_stardust = current_stardust + int_amount
                         table.update({"username": s_user, "stardust": new_stardust }, ["username"]) 
                         table = connection["stardust"]
                         table.insert({"trx": trx_id ,"mission_id": mission_id, "tr_type": "exploration", "tr_status": 1, "date": time_now, "to_user":s_user, "amount":int_amount})
-                        connection.commit()
+                        
                     except:
-                        connection.rollback()
+                        
                         print ("Database transaction failed")
                         return False
 
@@ -205,15 +205,15 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
 
                         seed = get_seed(trx_id)   
                         set_seed(seed)
-                        connection.begin()
+                        
                         try:
                             uid = uid_from_seed(shopitem["prefix"])
                             table = connection["items"]
                             table.insert({"uid": uid, "owner": s_user, "date": time_now, "trx_id": trx_id, "block_num": block_num,
                                         "itemid": itemid})
-                            connection.commit()
+                            
                         except:
-                            connection.rollback() 
+                             
                             print ("Database transaction failed")
                             return False
                         table = connection["activity"]
@@ -242,7 +242,7 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
                     cords_ver = planet_data['cords_ver']
                     planetowner = planet_data['user']                          
                     if time_now >= datetime(2019, 5, 3, 7, 40, 0):
-                        return move_ship(shipid,cords_hor,cords_ver, mission_id, parameter, time_now)
+                        return move_ship(connection, shipid,cords_hor,cords_ver, mission_id, parameter, time_now)
                     else:
                         table = connection["virtualops"]    
                         table.insert({"tr_status":0, "tr_type":"moveship", "tr_var1": shipid, "tr_var2": str(cords_hor), "tr_var3":str(cords_ver),
@@ -284,9 +284,9 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
             table.delete(id=shipid)
             
             # if there is a planet, generate the planet and explore the planet
-            create_planet(c_hor,c_ver, uid, time_now, block_num, trx_id)
-            explore_planet(uid, s_user, type, bonus, img_id, time_now)
-            update_resource_rate(uid, parameter, time_now)
+            create_planet(connection, c_hor,c_ver, uid, time_now, block_num, trx_id)
+            explore_planet(connection, uid, s_user, type, bonus, img_id, time_now)
+            update_resource_rate(connection, uid, parameter, time_now)
             # delete the explorer ship from the database
             table = connection["activity"]
             table.upsert({"user": s_user,  "mission_id": mission_id, "type": "explore", "date": time_now, "cords_hor": int(c_hor),
@@ -297,10 +297,10 @@ def explore(shipid, planet_id, mission_id, parameter, time_now, block_num, trx_i
             write_spacedb(c_hor,c_ver,s_user, time_now, block_num, trx_id, uid)
 
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def explorespace(planet_id,c_hor,c_ver, ship_name, parameter, time_now, block_num, trx_id):
+def explorespace(connection, planet_id,c_hor,c_ver, ship_name, parameter, time_now, block_num, trx_id):
     print("explorespace")
     shipstats = parameter["shipstats"]
     if ship_name is not None and ship_name not in ["explorership", "explorership1"]:
@@ -314,7 +314,7 @@ def explorespace(planet_id,c_hor,c_ver, ship_name, parameter, time_now, block_nu
     seed = get_seed(trx_id)    
     set_seed(seed)
 
-    connection = connectdb()
+    
     try:
         table = connection["planets"]
         planet_data = table.find_one(id=planet_id)
@@ -419,7 +419,7 @@ def explorespace(planet_id,c_hor,c_ver, ship_name, parameter, time_now, block_nu
         
         (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
         # check if there is a planet on the location already
-        target_planet_id = get_planetid (c_hor,c_ver)
+        target_planet_id = get_planetid (connection, c_hor,c_ver)
         if target_planet_id is not None:
             print ("There is already a planet on this location")
             return (False)
@@ -464,7 +464,7 @@ def explorespace(planet_id,c_hor,c_ver, ship_name, parameter, time_now, block_nu
         final_p_qty_copper = float(new_qty_copper) 
         final_p_qty_uranium = float(new_qty_uranium) - uranium_to_load  
         
-        connection.begin()
+        
         try:
             table = connection["planets"]
             table.update({"qyt_coal": final_p_qty_coal, "qyt_ore": final_p_qty_ore, "qyt_copper": final_p_qty_copper,
@@ -487,21 +487,21 @@ def explorespace(planet_id,c_hor,c_ver, ship_name, parameter, time_now, block_nu
             table.insert({"mission_id": mission_id, "user": planetowner, "mission_type": "explorespace",  "date": time_now, "busy_until": busy_until,
                         "cords_hor": s_cords_hor, "ships": json.dumps(ships),
                         "cords_ver": s_cords_ver, "cords_hor_dest": int(c_hor), "cords_ver_dest": int(c_ver), "busy_until_return": time_now + timedelta(flight_duration / 24) * 2})
-            connection.commit()
+            
         except:
-            connection.rollback() 
+             
             print ("Database transaction failed")
             return False        
 
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 # Command "transport"
-def transport_resources(ship_list, planet_id, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium, parameter, time_now, block_num, trx_id):
+def transport_resources(connection, ship_list, planet_id, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
     print("transport")
-    connection = connectdb()
+    
     try:
         table = connection["planets"]
         planet_from_data = table.find_one(id=planet_id)
@@ -523,7 +523,7 @@ def transport_resources(ship_list, planet_id, c_hor,c_ver ,qty_coal,qty_ore,qty_
             print("Planet for sale, can't start missions.")
             return False
 
-        to_planet_id = get_planetid (int(c_hor), int(c_ver))
+        to_planet_id = get_planetid (connection, int(c_hor), int(c_ver))
         if to_planet_id is None:    
             print("No planet at %d/%d was found" % (int(c_hor), int(c_ver)))
             return False
@@ -714,7 +714,7 @@ def transport_resources(ship_list, planet_id, c_hor,c_ver ,qty_coal,qty_ore,qty_
         q_copper = float(qty_copper)
         q_uranium = float(qty_uranium)
         
-        connection.begin()
+        
         for ship in ship_data:
             shipid = ship["id"]
             capacity = shipstats[ship["type"]]["capacity"]
@@ -785,16 +785,16 @@ def transport_resources(ship_list, planet_id, c_hor,c_ver ,qty_coal,qty_ore,qty_
         table = connection['planets']
         data = dict(id=planet_id,qyt_ore=fin_qty_ore,qyt_coal=fin_qty_coal,qyt_copper=fin_qty_copper,qyt_uranium=fin_qty_uranium,last_update=time_now)
         table.update(data,['id'])
-        connection.commit()
+        
 
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def break_siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_num, trx_id):
+def break_siege(connection, ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
     print("break_siege")
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -897,7 +897,7 @@ def break_siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, bl
         if planet_hor is None:
             print("Could not find planet_id")
             return False        
-        planet_id = get_planetid (planet_hor, planet_ver)
+        planet_id = get_planetid (connection, planet_hor, planet_ver)
         if planet_id is None:
             print("Could not find planet_id")
             return False     
@@ -923,7 +923,7 @@ def break_siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, bl
             if ship["cords_ver"] != s_cords_ver:
                 print("Ship %s is at a wrong location" % ship["id"])
                 return False    
-        to_planet_id = get_planetid (int(c_hor), int(c_ver))
+        to_planet_id = get_planetid (connection, int(c_hor), int(c_ver))
         if to_planet_id is None:    
             print("No planet at %d/%d was found" % (int(c_hor), int(c_ver)))
             return False
@@ -1042,7 +1042,7 @@ def break_siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, bl
         print(fin_qty_coal)
         # reduce the ressource level on the starting planet
 
-        connection.begin()
+        
         table = connection["missions"]
         table.insert({"mission_id": mission_id, "user": planetowner, "mission_type": "breaksiege",  "date": time_now, "busy_until": t_arrival,
                     "busy_until_return":  time_now + timedelta(max_duration / 24)*2, "ships": json.dumps(ships), "cords_hor": s_cords_hor,
@@ -1060,7 +1060,7 @@ def break_siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, bl
             table.update({"id": str(shipid), "cords_hor": int(planet_to_data['cords_hor']), "cords_ver": int(planet_to_data['cords_ver']),
                         "mission_busy_until": t_arrival, "position": position, "qyt_uranium": consumption_ship[shipid],
                         "mission_id": mission_id},['id'])
-        connection.commit()
+        
         # write an "offload" transaction into the transactions db, with a time set to the arrival time of the ships
         print("write vops")
         table = connection["virtualops"]
@@ -1068,14 +1068,14 @@ def break_siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, bl
                     "date": time_now, "parent_trx": trx_id, "trigger_date": t_arrival, "user":planetowner, "mission_id": mission_id})
         
         return (True)        
-    finally:
-        connection.close() 
+    except Exception as e:
+        raise e 
 
 # Command "attack"
-def attack(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_num, trx_id):
+def attack(connection, ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
     print("transport")
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -1176,7 +1176,7 @@ def attack(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_n
         if planet_hor is None:
             print("Could not find planet_id")
             return False        
-        planet_id = get_planetid (planet_hor, planet_ver)
+        planet_id = get_planetid (connection, planet_hor, planet_ver)
         if planet_id is None:
             print("Could not find planet_id")
             return False     
@@ -1203,7 +1203,7 @@ def attack(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_n
             if ship["cords_ver"] != s_cords_ver:
                 print("Ship %s is at a wrong location" % ship["id"])
                 return False    
-        to_planet_id = get_planetid (int(c_hor), int(c_ver))
+        to_planet_id = get_planetid (connection, int(c_hor), int(c_ver))
         if to_planet_id is None:    
             print("No planet at %d/%d was found" % (int(c_hor), int(c_ver)))
             return False
@@ -1325,7 +1325,7 @@ def attack(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_n
         print(fin_qty_coal)
         # reduce the ressource level on the starting planet
 
-        connection.begin()
+        
         table = connection["missions"]
         table.insert({"mission_id": mission_id, "user": planetowner, "mission_type": "attack",  "date": time_now, "busy_until": t_arrival,
                     "busy_until_return":  time_now + timedelta(max_duration / 24)*2, "ships": json.dumps(ships), "cords_hor": s_cords_hor,
@@ -1343,7 +1343,7 @@ def attack(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_n
             table.update({"id": str(shipid), "cords_hor": int(planet_to_data['cords_hor']), "cords_ver": int(planet_to_data['cords_ver']),
                         "mission_busy_until": t_arrival, "position": position, "qyt_uranium": consumption_ship[shipid],
                         "mission_id": mission_id},['id'])
-        connection.commit()
+        
         # write an "offload" transaction into the transactions db, with a time set to the arrival time of the ships
         print("write vops")
         table = connection["virtualops"]
@@ -1351,13 +1351,13 @@ def attack(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_n
                     "date": time_now, "parent_trx": trx_id, "trigger_date": t_arrival, "user":planetowner, "mission_id": mission_id})
         
         return (True)         
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_num, trx_id):
+def siege(connection, ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
     print("siege")
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -1469,7 +1469,7 @@ def siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_nu
         if planet_hor is None:
             print("Could not find planet_id")
             return False        
-        planet_id = get_planetid (planet_hor, planet_ver)
+        planet_id = get_planetid (connection, planet_hor, planet_ver)
         if planet_id is None:
             print("Could not find planet_id")
             return False     
@@ -1493,7 +1493,7 @@ def siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_nu
                 return False
             
 
-        to_planet_id = get_planetid (int(c_hor), int(c_ver))
+        to_planet_id = get_planetid (connection, int(c_hor), int(c_ver))
         if to_planet_id is None:    
             print("No planet at %d/%d was found" % (int(c_hor), int(c_ver)))
             return False
@@ -1622,7 +1622,7 @@ def siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_nu
         
         busy_until_return = t_arrival +  timedelta(siegeduration_h / 24)
         
-        connection.begin()
+        
         table = connection["missions"]
         table.insert({"mission_id": mission_id, "user": planetowner, "mission_type": "siege",  "date": time_now, "busy_until": t_arrival,
                     "busy_until_return":  busy_until_return, "ships": json.dumps(ships), "cords_hor": s_cords_hor,
@@ -1641,19 +1641,19 @@ def siege(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_nu
                         "mission_busy_until": t_arrival, "position": position, "qyt_uranium": consumption_ship[shipid],
                         "mission_id": mission_id},['id'])
         # write an "offload" transaction into the transactions db, with a time set to the arrival time of the ships
-        connection.commit()
+        
         table = connection["virtualops"]
         table.insert({"tr_status":0, "tr_type":"fly_home_mission", "tr_var1": mission_id, "tr_var2": planet_id,
                     "date": time_now, "parent_trx": trx_id, "trigger_date": busy_until_return, "user":planetowner, "mission_id": mission_id})        
         
         return (True)    
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def support(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_num, trx_id):
+def support(connection, ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
     print("support")
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -1757,7 +1757,7 @@ def support(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_
         if planet_hor is None:
             print("Could not find planet_id")
             return False        
-        planet_id = get_planetid (planet_hor, planet_ver)
+        planet_id = get_planetid (connection, planet_hor, planet_ver)
         if planet_id is None:
             print("Could not find planet_id")
             return False     
@@ -1786,7 +1786,7 @@ def support(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_
                 return False
             
 
-        to_planet_id = get_planetid (int(c_hor), int(c_ver))
+        to_planet_id = get_planetid (connection, int(c_hor), int(c_ver))
         if to_planet_id is None:    
             print("No planet at %d/%d was found" % (int(c_hor), int(c_ver)))
             return False
@@ -1905,7 +1905,7 @@ def support(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_
         print(fin_qty_coal)
         # reduce the ressource level on the starting planet
 
-        connection.begin()
+        
         table = connection["missions"]
         table.insert({"mission_id": mission_id, "user": planetowner, "mission_type": "support",  "date": time_now, "busy_until": t_arrival,
                     "busy_until_return":  None, "ships": json.dumps(ships), "cords_hor": s_cords_hor,
@@ -1923,17 +1923,17 @@ def support(ship_list, c_hor,c_ver ,start_planet_id, parameter, time_now, block_
             table.update({"id": str(shipid), "cords_hor": int(planet_to_data['cords_hor']), "cords_ver": int(planet_to_data['cords_ver']),
                         "mission_busy_until": t_arrival, "position": position, "qyt_uranium": consumption_ship[shipid],
                         "mission_id": mission_id},['id'])
-        connection.commit()
+        
         return (True)     
-    finally:
-        connection.close()    
+    except Exception as e:
+        raise e    
 
 # Command "deploy"
-def deploy_ships(ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium, start_planet_id, parameter, time_now, block_num, trx_id):
+def deploy_ships(connection, ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium, start_planet_id, parameter, time_now, block_num, trx_id):
 
     print("deploy")
     shipstats = parameter["shipstats"]
-    connection = connectdb()
+    
 
     try:
         if start_planet_id is None:
@@ -2006,7 +2006,7 @@ def deploy_ships(ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium
         if planet_hor is None:
             print("Could not find planet_id")
             return False        
-        planet_id = get_planetid (planet_hor, planet_ver)
+        planet_id = get_planetid (connection, planet_hor, planet_ver)
         if planet_id is None:
             print("Could not find planet_id")
             return False     
@@ -2035,7 +2035,7 @@ def deploy_ships(ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium
             if ship["cords_ver"] != s_cords_ver:
                 print("Ship %s is at a wrong location" % ship["id"])
                 return False    
-        to_planet_id = get_planetid (int(c_hor), int(c_ver))
+        to_planet_id = get_planetid (connection, int(c_hor), int(c_ver))
         if to_planet_id is None:    
             print("No planet at %d/%d was found" % (int(c_hor), int(c_ver)))
             return False
@@ -2171,7 +2171,7 @@ def deploy_ships(ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium
         q_copper = float(qty_copper)
         q_uranium = float(qty_uranium)
         
-        connection.begin()
+        
         for ship in ship_data:
             shipid = ship["id"]
             if time_now > datetime(2019, 5, 28, 8, 30, 0):
@@ -2218,7 +2218,7 @@ def deploy_ships(ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium
             table.update({"id": str(shipid), "cords_hor": int(planet_to_data['cords_hor']), "cords_ver": int(planet_to_data['cords_ver']),
                         "qyt_coal": s_qyt_coal, "qyt_ore": s_qyt_ore, "qyt_copper": s_qyt_copper, "mission_id": mission_id,
                         "qyt_uranium": s_qyt_uranium, "mission_busy_until": t_arrival},['id'])        
-        connection.commit()
+        
         
         if time_now < datetime(2019, 6, 23, 13, 0, 0) or max_duration > 0:
             table = connection["virtualops"]
@@ -2247,13 +2247,13 @@ def deploy_ships(ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper,qty_uranium
         data = dict(id=planet_id,qyt_ore=fin_qty_ore,qyt_coal=fin_qty_coal,qyt_copper=fin_qty_copper,qyt_uranium=fin_qty_uranium,last_update=time_now)
         table.update(data,['id'])
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
     
 # VOPS "offload_deploy"
-def offload_deploy(shipid, mission_id, parameter, time_now, block_num, trx_id):
+def offload_deploy(connection, shipid, mission_id, parameter, time_now, block_num, trx_id):
     # NOT USED ANYMORE - LEGACY ONLY
-    connection = connectdb()
+    
 
     try:
         print("offload_deploy")
@@ -2261,7 +2261,7 @@ def offload_deploy(shipid, mission_id, parameter, time_now, block_num, trx_id):
         (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(shipid)
 
         #get the data from the planet on which the ship is currently  located
-        planet_id = get_planetid (s_cords_hor,s_cords_ver)
+        planet_id = get_planetid (connection, s_cords_hor,s_cords_ver)
         if planet_id is None:
             print("No planet at offload location")
             return False
@@ -2289,14 +2289,14 @@ def offload_deploy(shipid, mission_id, parameter, time_now, block_num, trx_id):
 
         
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 # VOPS "offload_deploy_mission"
-def offload_deploy_mission(mission_id, planet_id, parameter, time_now, block_num, trx_id):
+def offload_deploy_mission(connection, mission_id, planet_id, parameter, time_now, block_num, trx_id):
     # increase the level of resources on the target planet
     upgrade_costs = parameter["upgrade_costs"]
-    connection = connectdb()
+    
     
     try:
         print("offload")
@@ -2322,7 +2322,7 @@ def offload_deploy_mission(mission_id, planet_id, parameter, time_now, block_num
         fin_qty_copper = float(new_qty_copper)
         fin_qty_uranium = float(new_qty_uranium)
         
-        connection.begin()  
+          
         table = connection["ships"]
         for ship in table.find(mission_id=mission_id):
             shipid = ship["id"]
@@ -2336,7 +2336,7 @@ def offload_deploy_mission(mission_id, planet_id, parameter, time_now, block_num
             table.update({"id": str(shipid), "user": user,
                         "qyt_coal": 0, "qyt_ore": 0, "qyt_copper": 0,
                         "qyt_uranium": 0},['id'])    
-        connection.commit()
+        
         table = connection['planets']
         data = dict(id=planet_id,qyt_ore=fin_qty_ore,qyt_coal=fin_qty_coal,qyt_copper=fin_qty_copper,qyt_uranium=fin_qty_uranium,last_update=time_now)
         table.update(data,['id'])    
@@ -2407,13 +2407,13 @@ def offload_deploy_mission(mission_id, planet_id, parameter, time_now, block_num
                 table_ranking.upsert({"season_id": season_id, "user": user, "last_update": time_now, "build_reward":new_recipient_build_reward, "total_reward": new_recipient_total_reward}, ["season_id", "user"])   
 
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 # VOPS "offload_return_mission"
-def offload_return_mission(mission_id, planet_id, parameter, time_now, block_num, trx_id):
+def offload_return_mission(connection, mission_id, planet_id, parameter, time_now, block_num, trx_id):
     # increase the level of resources on the target planet
-    connection = connectdb()
+    
 
     try:
         print("offload_return_mission")
@@ -2437,12 +2437,12 @@ def offload_return_mission(mission_id, planet_id, parameter, time_now, block_num
         
         if time_now < datetime(2019, 7, 17, 5, 30, 0):
             
-            planet_id = get_planetid (cords_hor,cords_ver)
+            planet_id = get_planetid (connection, cords_hor,cords_ver)
             if planet_id is None:
                 print("No planet to return to")
                 return False
         else:
-            return_planet_id = get_planetid (cords_hor,cords_ver)
+            return_planet_id = get_planetid (connection, cords_hor,cords_ver)
             if return_planet_id is None:
                 print("No planet to return to")
                 return False
@@ -2489,7 +2489,7 @@ def offload_return_mission(mission_id, planet_id, parameter, time_now, block_num
         fin_qty_copper = float(new_qty_copper)
         fin_qty_uranium = float(new_qty_uranium)
 
-        connection.begin()
+        
         table = connection["missions"]
         table.update({"mission_id": mission_id, "busy_until_return": t_arrival, "returning": True}, ["mission_id"])
         table = connection["ships"]
@@ -2507,19 +2507,19 @@ def offload_return_mission(mission_id, planet_id, parameter, time_now, block_num
                         "qyt_coal": 0, "qyt_ore": 0, "qyt_copper": 0,
                         "qyt_uranium": 0, "mission_busy_until": t_arrival},['id'])    
         
-        connection.commit()
+        
         table = connection['planets']
         data = dict(id=planet_id,qyt_ore=fin_qty_ore,qyt_coal=fin_qty_coal,qyt_copper=fin_qty_copper,qyt_uranium=fin_qty_uranium,last_update=time_now)
         table.update(data,['id'])      
         
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 # VOPS "fly_home_mission"
-def fly_home_mission(mission_id, planet_id, parameter, time_now, block_num, trx_id):
+def fly_home_mission(connection, mission_id, planet_id, parameter, time_now, block_num, trx_id):
     # increase the level of resources on the target planet
-    connection = connectdb()
+    
 
     try:
         print("fly_home_mission")
@@ -2540,7 +2540,7 @@ def fly_home_mission(mission_id, planet_id, parameter, time_now, block_num, trx_
         cords_hor = mission_data["cords_hor"]
         cords_ver = mission_data["cords_ver"]
         
-        planet_id = get_planetid (cords_hor,cords_ver)
+        planet_id = get_planetid (connection, cords_hor,cords_ver)
         if planet_id is None:
             print("No planet to return to")
             return False    
@@ -2582,7 +2582,7 @@ def fly_home_mission(mission_id, planet_id, parameter, time_now, block_num, trx_
         t_arrival = time_now + timedelta(max_duration / 24)    
         print("Distance %.2f, duration %.2f, arrival %s" % (distance, max_duration, str(t_arrival)))  
     
-        connection.begin()
+        
         table = connection["missions"]
         table.update({"mission_id": mission_id, "busy_until_return": t_arrival, "returning": True}, ["mission_id"])      
 
@@ -2594,20 +2594,20 @@ def fly_home_mission(mission_id, planet_id, parameter, time_now, block_num, trx_
                         "qyt_uranium": qyt_ship_uranium[shipid], "mission_busy_until": t_arrival},['id'])
         # write an "offload" transaction into the transactions db, with a time set to the arrival time of the ships
     
-        connection.commit()
+        
         print("write vops")
         table = connection["virtualops"]
         table.insert({"tr_status":0, "tr_type":"offload_deploy_mission", "tr_var1": mission_id, "tr_var2": planet_id,
                     "date": time_now, "parent_trx": trx_id, "trigger_date": t_arrival, "user":user})         
         
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
     
 # Command "cancel" 
-def cancel(mission_id, parameter, time_now, block_num, trx_id):
+def cancel(connection, mission_id, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
-    connection = connectdb()
+    
 
     try:
         print("cancel")
@@ -2619,7 +2619,7 @@ def cancel(mission_id, parameter, time_now, block_num, trx_id):
         cords_hor = mission_data["cords_hor"]
         cords_ver = mission_data["cords_ver"]
         
-        planet_id = get_planetid (cords_hor,cords_ver)
+        planet_id = get_planetid (connection, cords_hor,cords_ver)
         if planet_id is None:
             print("No planet to return to")
             return False    
@@ -2739,7 +2739,7 @@ def cancel(mission_id, parameter, time_now, block_num, trx_id):
         else:
             table.upsert({"user": user, "mission_id": mission_id, "type": mission_data["mission_type"], "date": time_now,  "cords_hor": int(cords_hor_dest),
                         "cords_ver": int(cords_ver_dest), "result": "cancel"}, ["mission_id"])     
-        connection.begin()
+        
         table = connection["ships"]
         for ship in ship_list:
             shipid = ship["id"]
@@ -2748,22 +2748,22 @@ def cancel(mission_id, parameter, time_now, block_num, trx_id):
                         "qyt_uranium": qyt_ship_uranium[shipid], "mission_busy_until": t_arrival},['id'])
         # write an "offload" transaction into the transactions db, with a time set to the arrival time of the ships
     
-        connection.commit()
+        
         print("write vops")
         table = connection["virtualops"]
         table.insert({"tr_status":0, "tr_type":"offload_deploy_mission", "tr_var1": mission_id, "tr_var2": planet_id,
                     "date": time_now, "parent_trx": trx_id, "trigger_date": t_arrival, "user":user})         
         
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 # VOPS "battle_return"
-def battle_return(mission_id, to_planet_id, attack_mission_type, parameter, time_now, block_num, trx_id):
+def battle_return(connection, mission_id, to_planet_id, attack_mission_type, parameter, time_now, block_num, trx_id):
     
     shipstats = parameter["shipstats"]
     upgrade_costs = parameter["upgrade_costs"]
-    connection = connectdb()
+    
 
     try:
         print("battle_return")
@@ -2812,7 +2812,7 @@ def battle_return(mission_id, to_planet_id, attack_mission_type, parameter, time
             a_shi = 1 + (int(attacker["r_shieldimprove"]) / 100)         
         
         #get the data from the planet on which the ship is currently  located
-        planet_id = get_planetid (cords_hor_dest,cords_ver_dest)
+        planet_id = get_planetid (connection, cords_hor_dest,cords_ver_dest)
         if planet_id is None:
             print("No planet at battle location")
             return False
@@ -3906,21 +3906,21 @@ def battle_return(mission_id, to_planet_id, attack_mission_type, parameter, time
 
         
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 # VOPS "offload_return"
-def offload_return (shipid, to_planet_id, mission_id, parameter, time_now, block_num, trx_id):
+def offload_return (connection, shipid, to_planet_id, mission_id, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
     # increase the level of resources on the target planet
-    connection = connectdb()
+    
 
     try:
         print("offload")
         
         (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(shipid)
 
-        planet_id = get_planetid (s_cords_hor,s_cords_ver)
+        planet_id = get_planetid (connection, s_cords_hor,s_cords_ver)
         if planet_id is None:
             print("No planet at offload location")
             return False
@@ -3972,11 +3972,11 @@ def offload_return (shipid, to_planet_id, mission_id, parameter, time_now, block
 
         
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def update_ranking_user(username, time_now):
-    connection = connectdb()
+def update_ranking_user(connection, username, time_now):
+    
 
     try:
         meta_skill = 0
@@ -4015,12 +4015,12 @@ def update_ranking_user(username, time_now):
                         "meta_skill": meta_skill, "explorations": n_explorartion, "planets": n_planets,
                         "meta_rate": meta_rate, "ships": n_ships}
         table.upsert(data, ["user"])
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
         
 
-def update_ranking(parameter, time_now):
-    connection = connectdb()
+def update_ranking(connection, parameter, time_now):
+    
         
     try:
         table = connection["ranking"]
@@ -4036,10 +4036,10 @@ def update_ranking(parameter, time_now):
         print("Update %d entries - %s - age %.2f h" % (limit, str(oldest_entry["last_update"]), age))
         for data in table.find(order_by="last_update", _limit=limit):
             update_ranking_user(data["user"], time_now)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def update_resource_rate(planetid, parameter, time_now):
+def update_resource_rate(connection, planetid, parameter, time_now):
     production_rates = parameter["production_rates"]
     planet_rarity = parameter["planet_rarity"]
 
@@ -4049,7 +4049,7 @@ def update_resource_rate(planetid, parameter, time_now):
     uranium_bonus_percentage = 0
 
     # get the planet data from the database
-    connection = connectdb()
+    
 
     try:
         table=connection["planets"]
@@ -4157,16 +4157,16 @@ def update_resource_rate(planetid, parameter, time_now):
                     "rate_copper": copper_production_rate, "rate_uranium": uranium_production_rate,
                     "depot_coal": cap_coaldepot, "depot_ore": cap_oredepot, "depot_copper": cap_copperdepot,
                     "depot_uranium": cap_uraniumdepot}, ["id"])
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 
-def get_resource_levels(planetid, parameter, time_now):
+def get_resource_levels(connection, planetid, parameter, time_now):
     production_rates = parameter["production_rates"]     
 
     # get the planet data from the database
     # Connect to the database
-    connection = connectdb()
+    
 
     try:
         table=connection["planets"]
@@ -4190,7 +4190,7 @@ def get_resource_levels(planetid, parameter, time_now):
         rate_copper = planetdata["rate_copper"]
         rate_uranium = planetdata["rate_uranium"]
         if rate_coal == 0 or rate_ore == 0 or rate_copper == 0 or rate_uranium == 0:
-            update_resource_rate(planetid, parameter, time_now)
+            update_resource_rate(connection, planetid, parameter, time_now)
             table=connection["planets"]
             planetdata = table.find_one(id=planetid)        
             rate_coal = planetdata["rate_coal"]
@@ -4203,7 +4203,7 @@ def get_resource_levels(planetid, parameter, time_now):
         cap_copperdepot = planetdata["depot_copper"]
         cap_uraniumdepot = planetdata["depot_uranium"]    
         if cap_coaldepot == 0 or cap_oredepot == 0 or cap_copperdepot == 0 or cap_uraniumdepot == 0:
-            update_resource_rate(planetid, parameter, time_now)
+            update_resource_rate(connection, planetid, parameter, time_now)
             table=connection["planets"]
             planetdata = table.find_one(id=planetid)        
             cap_coaldepot = planetdata["depot_coal"]
@@ -4234,10 +4234,10 @@ def get_resource_levels(planetid, parameter, time_now):
             new_qty_uranium = qty_uranium
         
         return (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def build_ship(planetid,ship, parameter, time_now, block_num, trx_id):
+def build_ship(connection, planetid,ship, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
     upgrade_costs = parameter["upgrade_costs"]
     blueprint_ships = ["battlecruiser1","battlecruiser2","carrier1","carrier2","corvette1","corvette2","cruiser1","cruiser2",
@@ -4245,7 +4245,7 @@ def build_ship(planetid,ship, parameter, time_now, block_num, trx_id):
                        "frigate2", "transportship1", "transportship2", "scout1", "scout2", "patrol1", "patrol2", "cutter1", "cutter2","yamato", "yamato1", "yamato2", "yamato3","yamato4","yamato5","yamato6","yamato7","yamato8","yamato9","yamato10","yamato11","yamato12",
                       "yamato13","yamato14","yamato15","yamato16","yamato17","yamato18","yamato19","yamato20"]    
     # get the planet data from the database
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -4400,15 +4400,15 @@ def build_ship(planetid,ship, parameter, time_now, block_num, trx_id):
                     "qyt_uranium": final_qty_uranium, "last_update": (time_now)}, ["id"])
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def finish_skill(user, skill, newlevel, parameter, time_now, block_num, trx_id):
+def finish_skill(connection, user, skill, newlevel, parameter, time_now, block_num, trx_id):
     skill_costs = parameter["skill_costs"]
     if skill not in skill_costs:
         print("%s is not in skillcosts table" % skill)
         return False
-    connection = connectdb()
+    
 
     try:
         # check the research levels
@@ -4442,12 +4442,12 @@ def finish_skill(user, skill, newlevel, parameter, time_now, block_num, trx_id):
         table.update({str(level_parameter): int(newlevel), "username": user}, ["username"])
 
         for planetid in planetid_list:
-            update_resource_rate(planetid, parameter, time_now)
+            update_resource_rate(connection, planetid, parameter, time_now)
         return True   
-    finally:
-        connection.close()       
+    except Exception as e:
+        raise e       
     
-def enhance(user, planetid, skill, parameter, time_now, trx_id, transaction_id):
+def enhance(connection, user, planetid, skill, parameter, time_now, trx_id, transaction_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
@@ -4460,7 +4460,7 @@ def enhance(user, planetid, skill, parameter, time_now, trx_id, transaction_id):
         print("Skill %s does not exists in the game right now." % skill)
         return False     
     
-    connection = connectdb()
+    
 
     try:
         # check the research levels
@@ -4525,7 +4525,7 @@ def enhance(user, planetid, skill, parameter, time_now, trx_id, transaction_id):
         
         busy_until = time_now + upgrade_time
         print ("Charging will take until: "+str(busy_until))
-        connection.begin()
+        
         try:
             table = connection['planets']
             table.update({"qyt_coal": final_p_qty_coal, "qyt_ore": final_p_qty_ore, "qyt_copper": final_p_qty_copper,
@@ -4537,21 +4537,20 @@ def enhance(user, planetid, skill, parameter, time_now, trx_id, transaction_id):
                         "date": time_now, "parent_trx": trx_id, "trigger_date": busy_until, "user":user})    
             table = connection["transactions"]
             table.update({"id": transaction_id, "tr_status": 1}, ["id"])  
-            connection.commit()
+            
         except:
-            connection.rollback() 
             print ("Database transaction failed")
             return False
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def finish_building(planetid, building, newlevel, parameter, time_now, block_num, trx_id):
+def finish_building(connection, planetid, building, newlevel, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]    
     # get the planet data from the database
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -4580,17 +4579,17 @@ def finish_building(planetid, building, newlevel, parameter, time_now, block_num
         table.update({"id": planetid, str(building_level): int(newlevel), "qyt_coal": new_qty_coal, "qyt_ore": new_qty_ore, "qyt_copper": new_qty_copper,
                     "qyt_uranium": new_qty_uranium, "last_update": (time_now)}, ["id"])    
 
-        update_resource_rate(planetid, parameter, time_now)
+        update_resource_rate(connection, planetid, parameter, time_now)
 
         return True      
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def finish_charging(planetid, building, parameter, time_now, block_num, trx_id):
+def finish_charging(connection, planetid, building, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]    
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -4606,13 +4605,13 @@ def finish_charging(planetid, building, parameter, time_now, block_num, trx_id):
         table.update({"id": planetid, "qyt_coal": new_qty_coal, "qyt_ore": new_qty_ore, "qyt_copper": new_qty_copper,
                     "qyt_uranium": new_qty_uranium, "shieldcharged": True, "last_update": (time_now)}, ["id"])    
 
-        update_resource_rate(planetid, parameter, time_now)
+        update_resource_rate(connection, planetid, parameter, time_now)
 
         return True      
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def charge(planetid,building, parameter, time_now, trx_id, transaction_id):
+def charge(connection, user, planetid,building, parameter, time_now, trx_id, transaction_id):
     print("charge shildgenerator")
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
@@ -4621,7 +4620,7 @@ def charge(planetid,building, parameter, time_now, trx_id, transaction_id):
     if building != "shieldgenerator":
         return False
     
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -4649,7 +4648,7 @@ def charge(planetid,building, parameter, time_now, trx_id, transaction_id):
             buildinglevel = 0
 
         # get the current level of available resources from the database
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planetid, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(connection, planetid, parameter, time_now)
         final_qty_coal = new_qty_coal
         final_qty_ore = new_qty_ore
         final_qty_copper = new_qty_copper
@@ -4672,7 +4671,7 @@ def charge(planetid,building, parameter, time_now, trx_id, transaction_id):
         table.update({"id": planetid, "shieldcharge_busy": (busy_until),
                             "qyt_coal": final_qty_coal, "qyt_ore": final_qty_ore, "qyt_copper": final_qty_copper,
                             "qyt_uranium": final_qty_uranium, "last_update": (time_now)}, ["id"])    
-        update_resource_rate(planetid, parameter, time_now)
+        update_resource_rate(connection, planetid, parameter, time_now)
         
         table = connection["virtualops"]    
         table.insert({"tr_status":0, "tr_type":"finishcharging", "tr_var1": planetid, "tr_var2": building,
@@ -4681,10 +4680,10 @@ def charge(planetid,building, parameter, time_now, trx_id, transaction_id):
         table.update({"id": transaction_id, "tr_status": 1}, ["id"])  
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def enable(planetid,building, parameter, time_now, trx_id, transaction_id):
+def enable(connection, user, planetid,building, parameter, time_now, trx_id, transaction_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
@@ -4692,7 +4691,7 @@ def enable(planetid,building, parameter, time_now, trx_id, transaction_id):
     if building != "shieldgenerator":
         return False
     
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -4743,15 +4742,15 @@ def enable(planetid,building, parameter, time_now, trx_id, transaction_id):
         table.update({"id": transaction_id, "tr_status": 1}, ["id"])  
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
     
-def upgrade(planetid,building, parameter, time_now, trx_id, transaction_id):
+def upgrade(connection, user, planetid,building, parameter, time_now, trx_id, transaction_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
     # get the planet data from the database    
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -4833,7 +4832,7 @@ def upgrade(planetid,building, parameter, time_now, trx_id, transaction_id):
             return False
 
         # Update the database with the new data
-        connection.begin()
+        
         try:
             table = connection["planets"]
             table.update({"id": planetid, str(busy_parameter): (busy_until),
@@ -4844,24 +4843,24 @@ def upgrade(planetid,building, parameter, time_now, trx_id, transaction_id):
                         "date": time_now, "parent_trx": trx_id, "trigger_date": busy_until, "user":planetowner})
             table = connection["transactions"]
             table.update({"id": transaction_id, "tr_status": 1}, ["id"])  
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False
         
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def gift_item(uid, target, parameter, time_now, trx_id):
+def gift_item(connection, uid, target, parameter, time_now, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]       
     
     # get the planet data from the database
     # Connect to the database
-    connection = connectdb()
+    
 
     try:
         table = connection["items"]
@@ -4895,12 +4894,12 @@ def gift_item(uid, target, parameter, time_now, trx_id):
             return False
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 
-def transfer_stardust(username, amount, target, parameter, time_now, trx_id):
-    connection = connectdb()
+def transfer_stardust(connection, username, amount, target, parameter, time_now, trx_id):
+    
 
     try:
         table = connection["users"]
@@ -4933,7 +4932,7 @@ def transfer_stardust(username, amount, target, parameter, time_now, trx_id):
             print("Can not send stardust")
             return False  
 
-        connection.begin()
+        
         try:     
             table = connection["users"]
             table.update({"id": user["id"], "stardust":user["stardust"] - int_amount }, ["id"])
@@ -4944,22 +4943,22 @@ def transfer_stardust(username, amount, target, parameter, time_now, trx_id):
             table = connection["stardust"]
             table.insert({"trx": trx_id, "tr_type": "transfer", "tr_status": 1, "date": time_now,
                         "from_user":username, "to_user":target, "amount":int_amount})
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False       
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 
-def rename_planet(uid, new_name, parameter, time_now, block_num, trx_id):
+def rename_planet(connection, uid, new_name, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
-    connection = connectdb()
+    
 
     try:
         legendary_planets_uid = ['1000', '1001', '1002', '1003', '1004', '1005', '1006', '1007', '1008']
@@ -4988,14 +4987,14 @@ def rename_planet(uid, new_name, parameter, time_now, block_num, trx_id):
         table.update(data,['id'])
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def update_shop(item_id, parameter_name, new_value, parameter, time_now, block_num, trx_id):
+def update_shop(connection, item_id, parameter_name, new_value, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
-    connection = connectdb()
+    
     try:
         table = connection["shop"]
         shop_data = table.find_one(itemid=item_id)
@@ -5010,14 +5009,14 @@ def update_shop(item_id, parameter_name, new_value, parameter, time_now, block_n
             return False
         table.update({"itemid": item_id, parameter_name: new_value}, ["itemid"])
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def new_season(season_name, duration_days, steem_rewards, leach_rate, deploy_rate, parameter, time_now, block_num, trx_id):
+def new_season(connection, season_name, duration_days, steem_rewards, leach_rate, deploy_rate, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
-    connection = connectdb()
+    
 
     try:
         table = connection["season"]
@@ -5054,12 +5053,12 @@ def new_season(season_name, duration_days, steem_rewards, leach_rate, deploy_rat
                     "date": time_now, "parent_trx": trx_id, "trigger_date": end_date, "user": "nextcolony"})
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def finish_season(season_id, parameter, time_now, block_num, trx_id):
+def finish_season(connection, season_id, parameter, time_now, block_num, trx_id):
     print("finish_season")
-    connection = connectdb()
+    
     try:
         table = connection["season"]
         last_season = table.find_one(order_by="-end_date")
@@ -5147,12 +5146,12 @@ def finish_season(season_id, parameter, time_now, block_num, trx_id):
             print("Seasons are not matching. Nothing done.")  
             return False                                                    
         return True    
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def upgrade_yamato(username, planetid, shiptype, parameter, time_now, block_num, trx_id):
+def upgrade_yamato(connection, username, planetid, shiptype, parameter, time_now, block_num, trx_id):
     print("upgrade_yamato")
-    connection = connectdb()
+    
 
     try:
         #get the upgrade costs
@@ -5331,7 +5330,7 @@ def upgrade_yamato(username, planetid, shiptype, parameter, time_now, block_num,
         print(mission_id)  
         ships = {shiptype: 1}  
 
-        connection.begin()
+        
         try:
             table = connection["planets"]
             table.update({"id": planetid, "qyt_coal":fin_qty_coal, "qyt_ore": fin_qty_ore, "qyt_copper": fin_qty_copper, "qyt_uranium":fin_qty_uranium, "last_update": time_now}, ["id"])
@@ -5352,19 +5351,19 @@ def upgrade_yamato(username, planetid, shiptype, parameter, time_now, block_num,
             table = connection["virtualops"]    
             table.insert({"tr_status":0, "tr_type":"finishyamato", "tr_var1": shipid, "tr_var2": ship_cords_hor, "tr_var3":ship_cords_ver, "tr_var4": mission_id, "tr_var5": season_id,
                         "date": time_now, "parent_trx": trx_id, "trigger_date": busy_until, "user":planetowner, "mission_id": mission_id})
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
     
-def finish_yamato(shipid, ship_cords_hor, ship_cords_ver, mission_id, season_id, parameter, time_now, block_num, trx_id):
+def finish_yamato(connection, shipid, ship_cords_hor, ship_cords_ver, mission_id, season_id, parameter, time_now, block_num, trx_id):
     print("finish_yamato")
-    connection = connectdb()
+    
 
     try:
         upgrade_costs = parameter["upgrade_costs"]
@@ -5449,14 +5448,14 @@ def finish_yamato(shipid, ship_cords_hor, ship_cords_ver, mission_id, season_id,
                             "cords_ver": ship_cords_ver, "result": "yamato_upgraded"}, ["mission_id"])   
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def gift_planet(uid, target, parameter, time_now, block_num, trx_id):
+def gift_planet(connection, uid, target, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
-    connection = connectdb()
+    
 
     try:
         target = target.lower().strip()
@@ -5597,7 +5596,7 @@ def gift_planet(uid, target, parameter, time_now, block_num, trx_id):
             if new_uid is None:
                 new_uid = uid_from_seed("P-")
         
-            create_planet(x,y, new_uid, time_now, block_num, trx_id)        
+            create_planet(connection, x,y, new_uid, time_now, block_num, trx_id)        
             table = connection["planets"]
             table.update({"id": new_uid, "img_id": img_id, "user": planetowner, "name": planetname, "planet_type": planet_type, "bonus": bonus, "qyt_uranium": init_qty_uranium,
                         "qyt_ore": init_qty_ore, "qyt_copper": init_qty_copper, "qyt_coal": init_qty_coal,
@@ -5607,7 +5606,7 @@ def gift_planet(uid, target, parameter, time_now, block_num, trx_id):
                         "last_update": (time_now), "date_disc": (time_now),
                         "cords_hor": x, "cords_ver": y, "startplanet": True}, ["id"])
         
-            update_resource_rate(new_uid, parameter, time_now)
+            update_resource_rate(connection, new_uid, parameter, time_now)
         
         # Update Yamato Ranking for transferred ships
         # Get current season            
@@ -5666,10 +5665,10 @@ def gift_planet(uid, target, parameter, time_now, block_num, trx_id):
             table = connection["ships"]
             n_ships = table.count(user=planetowner, cords_hor=cords_hor, cords_ver=cords_ver)
             if n_ships > 0:
-                connection.begin()
+                
                 for ship in table.find(user=planetowner, cords_hor=cords_hor, cords_ver=cords_ver):
                     table.update({"id": ship["id"], "user": target}, ["id"])
-                connection.commit()  
+                  
 
         table = connection['planets']
         if target == "null":        
@@ -5682,32 +5681,32 @@ def gift_planet(uid, target, parameter, time_now, block_num, trx_id):
             data = dict(id=uid,user=target,startplanet=False)
             table.update(data,['id'])
         # costs
-        connection.begin()
+        
         try: 
             table = connection["users"]
             table.update({"id": ownerdata["id"], "stardust": fin_qty_stardust}, ["id"])    
             table = connection["stardust"]
             table.insert({"trx": trx_id, "tr_type": "fee", "tr_status": 1, "date": time_now, "from_user":planetowner, "amount":stardust_costs})
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False   
         # ranking
-        update_ranking_user(target, time_now)
-        update_ranking_user(planetowner, time_now)
+        update_ranking_user(connection, target, time_now)
+        update_ranking_user(connection, planetowner, time_now)
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def activate(uid, target, parameter, time_now, trx_id):
+def activate(connection, uid, target, parameter, time_now, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]       
     
     # get the planet data from the database
     # Connect to the database
-    connection = connectdb()
+    
 
     try:
         table = connection["items"]
@@ -5800,15 +5799,15 @@ def activate(uid, target, parameter, time_now, trx_id):
             else:
                 table.update({"id":target, "qyt_coal": final_qty_coal, "qyt_ore": final_qty_ore, "qyt_copper": final_qty_copper,
                             "qyt_uranium": final_qty_uranium, "last_update": time_now}, ["id"])            
-            update_resource_rate(target, parameter, time_now)
+            update_resource_rate(connection, target, parameter, time_now)
         else:
             return False
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def adduser(name, parameter, time_now, block_num, trx_id):
+def adduser(connection, name, parameter, time_now, block_num, trx_id):
     reg_h=0
     reg_v=0
     init_lvl_copper = 0
@@ -5832,7 +5831,7 @@ def adduser(name, parameter, time_now, block_num, trx_id):
     init_qty_uranium = 14
     
     
-    existinguser = checkifuser(name)
+    existinguser = checkifuser(connection, name)
     print ("%s found in the DB: %s " % (name, str(existinguser)))
     if existinguser:
         print ("User is aready active in the game")
@@ -5911,7 +5910,7 @@ def adduser(name, parameter, time_now, block_num, trx_id):
         planet_type = 1
         uid = None   
     
-    connection = connectdb()
+    
 
     try:
         table = connection['planets']
@@ -5951,7 +5950,7 @@ def adduser(name, parameter, time_now, block_num, trx_id):
             galaxy_index = 0
         while x_solarsystem is None and galaxy_index < galaxy_count:
             while not region_found and donat_ring_index < len(donat_ring_list):
-                x_solarsystem, y_solarsystem = get_free_solarsystem_in_donat(coords_list, solarsystem_list, region_list, galaxy_x, galaxy_y, donat_ring_list[donat_ring_index], add_legendary)
+                x_solarsystem, y_solarsystem = get_free_solarsystem_in_donat(connection, coords_list, solarsystem_list, region_list, galaxy_x, galaxy_y, donat_ring_list[donat_ring_index], add_legendary)
                 
                 if x_solarsystem is None:
                     print("using donat ring %d is full " % donat_ring_list[donat_ring_index])
@@ -5980,7 +5979,7 @@ def adduser(name, parameter, time_now, block_num, trx_id):
         if uid is None:
             uid = uid_from_seed("P-")
 
-        create_planet(x,y, uid, time_now, block_num, trx_id)
+        create_planet(connection, x,y, uid, time_now, block_num, trx_id)
         
         table = connection["users"]
         table.insert({"username": name, "r_base": init_lvl_base_skill, "r_missioncontrol": init_lvl_missioncontrol_skill, "date": time_now})
@@ -5994,18 +5993,18 @@ def adduser(name, parameter, time_now, block_num, trx_id):
                     "last_update": (time_now), "date_disc": (time_now),
                     "cords_hor": x, "cords_ver": y, "startplanet": True}, ["id"])
 
-        update_resource_rate(uid, parameter, time_now)
-        update_ranking_user(name, time_now)
+        update_resource_rate(connection, uid, parameter, time_now)
+        update_ranking_user(connection, name, time_now)
         
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def respawn(planet_id, parameter, time_now, block_num, trx_id):
+def respawn(connection, planet_id, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
-    connection = connectdb()
+    
 
     try:
         table = connection["planets"]
@@ -6110,15 +6109,15 @@ def respawn(planet_id, parameter, time_now, block_num, trx_id):
                 table_ranking.upsert({"season_id": season_id, "user": planetowner, "last_update": time_now, "build_reward":new_sender_build_reward, "total_reward": new_sender_total_reward}, ["season_id", "user"])
     
         # costs
-        connection.begin()
+        
         try:
             table = connection["users"]
             table.update({"id": ownerdata["id"], "stardust": fin_qty_stardust}, ["id"])    
             table = connection["stardust"]
             table.insert({"trx": trx_id, "tr_type": "fee", "tr_status": 1, "date": time_now, "from_user":planetowner, "amount":stardust_costs})
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False  
 
@@ -6126,10 +6125,10 @@ def respawn(planet_id, parameter, time_now, block_num, trx_id):
         table = connection["ships"]
         n_ships = table.count(user=planetowner, cords_hor=cords_hor, cords_ver=cords_ver)
         if n_ships > 0:
-            connection.begin()
+            
             for ship in table.find(user=planetowner, cords_hor=cords_hor, cords_ver=cords_ver):
                 table.update({"id": ship["id"], "user": "null"}, ["id"])
-            connection.commit()   
+               
             
         # Transfer Planet    
         table = connection['planets']
@@ -6189,7 +6188,7 @@ def respawn(planet_id, parameter, time_now, block_num, trx_id):
         galaxy_index = 0
         while x_solarsystem is None and galaxy_index < galaxy_count:
             while not region_found and donat_ring_index < len(donat_ring_list):
-                x_solarsystem, y_solarsystem = get_free_solarsystem_in_donat(coords_list, solarsystem_list, region_list, galaxy_x, galaxy_y, donat_ring_list[donat_ring_index], add_legendary)
+                x_solarsystem, y_solarsystem = get_free_solarsystem_in_donat(connection, coords_list, solarsystem_list, region_list, galaxy_x, galaxy_y, donat_ring_list[donat_ring_index], add_legendary)
                 
                 if x_solarsystem is None:
                     print("using donat ring %d is full " % donat_ring_list[donat_ring_index])
@@ -6215,7 +6214,7 @@ def respawn(planet_id, parameter, time_now, block_num, trx_id):
         if uid is None:
             uid = uid_from_seed("P-")
 
-        create_planet(x,y, uid, time_now, block_num, trx_id)
+        create_planet(connection, x,y, uid, time_now, block_num, trx_id)
         
         table = connection["planets"]
         table.update({"id": uid, "img_id": img_id, "user": planetowner, "name": planetname, "planet_type": planet_type, "bonus": bonus, "qyt_uranium": init_qty_uranium,
@@ -6226,17 +6225,17 @@ def respawn(planet_id, parameter, time_now, block_num, trx_id):
                     "last_update": (time_now), "date_disc": (time_now),
                     "cords_hor": x, "cords_ver": y, "startplanet": True}, ["id"])
 
-        update_ranking_user(planetowner, time_now)
+        update_ranking_user(connection, planetowner, time_now)
         
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def burn(planet_id, parameter, time_now, block_num, trx_id):
+def burn(connection, planet_id, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
     skill_costs = parameter["skill_costs"]
     production_rates = parameter["production_rates"]
-    connection = connectdb()
+    
 
     try:
 
@@ -6346,15 +6345,15 @@ def burn(planet_id, parameter, time_now, block_num, trx_id):
                 table_ranking.upsert({"season_id": season_id, "user": planetowner, "last_update": time_now, "build_reward":new_sender_build_reward, "total_reward": new_sender_total_reward}, ["season_id", "user"])
     
         # income
-        connection.begin()
+        
         try:
             table = connection["users"]
             table.update({"id": ownerdata["id"], "stardust": fin_qty_stardust}, ["id"])    
             table = connection["stardust"]
             table.insert({"trx": trx_id, "tr_type": "burn", "tr_status": 1, "date": time_now, "to_user":planetowner, "amount":stardust_income})
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False    
 
@@ -6362,10 +6361,10 @@ def burn(planet_id, parameter, time_now, block_num, trx_id):
         table = connection["ships"]
         n_ships = table.count(user=planetowner, cords_hor=cords_hor, cords_ver=cords_ver)
         if n_ships > 0:
-            connection.begin()
+            
             for ship in table.find(user=planetowner, cords_hor=cords_hor, cords_ver=cords_ver):
                 table.update({"id": ship["id"], "user": "null"}, ["id"])
-            connection.commit()   
+               
             
         # Transfer Planet    
         table = connection['planets']
@@ -6375,14 +6374,14 @@ def burn(planet_id, parameter, time_now, block_num, trx_id):
         boost_percentage=0)
         table.update(data,['id'])
 
-        update_ranking_user(planetowner, time_now)
+        update_ranking_user(connection, planetowner, time_now)
         
         return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def issuestardust(amount, target, time_now, block_num, trx_id):
-    connection = connectdb()
+def issuestardust(connection, amount, target, time_now, block_num, trx_id):
+    
     
     try:
         try:
@@ -6405,28 +6404,28 @@ def issuestardust(amount, target, time_now, block_num, trx_id):
             stardust_balance = 0
         fin_qty_stardust = int(stardust_balance) + int(int_amount)   
 
-        connection.begin()
+        
         try:
             table = connection["users"]
             table.update({"id": userdata["id"], "stardust": fin_qty_stardust}, ["id"])    
             table = connection["stardust"]
             table.insert({"trx": trx_id, "tr_type": "issuestardust", "tr_status": 1, "date": time_now, "to_user":target, "amount":int_amount})
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False       
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def ask(user, category, uid, price, market, parameter, time_now, block_num, trx_id):
+def ask(connection, user, category, uid, price, market, parameter, time_now, block_num, trx_id):
     shipstats = parameter["shipstats"]
     cords_hor = None
     cords_ver = None
     img_id = None
-    connection = connectdb()
+    
 
     try:
         print("ask")
@@ -6556,12 +6555,12 @@ def ask(user, category, uid, price, market, parameter, time_now, block_num, trx_
                 planet_hor = ship["cords_hor"]
                 planet_ver = ship["cords_ver"]
             elif planet_hor != ship["cords_hor"] or planet_ver != ship["cords_ver"]:
-                print("Ship %d is not at %d/%d" %(shipid, planet_hor, planet_ver))
+                print("Ship %d is not at %d/%d" %(ship["id"], planet_hor, planet_ver))
                 return False          
             if planet_hor is None:
                 print("Could not find planet_id")
                 return False        
-            planet_id = get_planetid (planet_hor, planet_ver)
+            planet_id = get_planetid (connection, planet_hor, planet_ver)
             if planet_id is None:
                 print("Could not find planet_id")
                 return False     
@@ -6601,11 +6600,11 @@ def ask(user, category, uid, price, market, parameter, time_now, block_num, trx_
             table.update({"id": uid, "for_sale": 1}, ["id"]) 
 
         return True
-    finally:
-        connection.close()    
+    except Exception as e:
+        raise e    
 
-def cancel_ask(ask_id, parameter, time_now, block_num, trx_id):
-    connection = connectdb()
+def cancel_ask(connection, ask_id, parameter, time_now, block_num, trx_id):
+    
 
     try:
         print("cancel_ask")
@@ -6643,12 +6642,12 @@ def cancel_ask(ask_id, parameter, time_now, block_num, trx_id):
             table.update({"id": uid, "for_sale": 0}, ["id"])
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def fill_ask(user, ask_id, parameter, time_now, block_num, trx_id):
+def fill_ask(connection, user, ask_id, parameter, time_now, block_num, trx_id):
     upgrade_costs = parameter["upgrade_costs"]
-    connection = connectdb()
+    
 
     try:
         print("fill_ask")
@@ -6792,7 +6791,7 @@ def fill_ask(user, ask_id, parameter, time_now, block_num, trx_id):
                 table = connection["ships"]
                 table.update({"id":uid, "for_sale": 0}, ["id"])
                 return False         
-            planet_id = get_planetid (planet_hor, planet_ver)
+            planet_id = get_planetid (connection, planet_hor, planet_ver)
             if planet_id is None:
                 print("Could not find planet_id")
                 table = connection["asks"]
@@ -6901,20 +6900,20 @@ def fill_ask(user, ask_id, parameter, time_now, block_num, trx_id):
             n_ships = table.count(user=seller, cords_hor=cords_hor, cords_ver=cords_ver)
             if n_ships > 0:
                 print("Transfer sold ships: "+str(n_ships))
-                connection.begin()
+                
                 for ship in table.find(user=seller, cords_hor=cords_hor, cords_ver=cords_ver):
                     table.update({"id": ship["id"], "user": user}, ["id"])
-                connection.commit()  
+                  
             # ranking
-            update_ranking_user(seller, time_now)
-            update_ranking_user(user, time_now)
+            update_ranking_user(connection, seller, time_now)
+            update_ranking_user(connection, user, time_now)
         # SHIP
         elif category == "ship":
             table = connection["planets"]
             new_planet = table.find_one(user=user,startplanet=1)
             if new_planet is None:
                 print("No planet to transfer ships to")
-                return Falset
+                return False
             new_cords_hor = new_planet["cords_hor"]
             new_cords_ver = new_planet["cords_ver"]
 
@@ -6974,7 +6973,7 @@ def fill_ask(user, ask_id, parameter, time_now, block_num, trx_id):
             return False   
 
         # Stardust Transfers
-        connection.begin()
+        
         try:
             # Buyer
             table = connection['users']
@@ -7015,18 +7014,18 @@ def fill_ask(user, ask_id, parameter, time_now, block_num, trx_id):
             # Log Result
             table = connection["asks"]
             table.update({"id": ask_id, "buy_trx": trx_id, "sold": time_now}, ["id"])
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False      
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def buff(user, buff, parameter, time_now, block_num, trx_id):
-    connection = connectdb()
+def buff(connection, user, buff, parameter, time_now, block_num, trx_id):
+    
 
     try:
         # Get Buff 
@@ -7066,24 +7065,24 @@ def buff(user, buff, parameter, time_now, block_num, trx_id):
             return False
 
         # Write to DB 
-        connection.begin()
+        
         try:
             table = connection["users"]
             table.update({"id": userdata["id"], "stardust": fin_qty_stardust, buff_column: new_buff_end}, ["id"])
             table = connection["stardust"]
             table.insert({"trx": trx_id, "tr_type": "buff", "tr_status": 1, "date": time_now, "from_user":user, "amount":price})      
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def updatebuff(buff, price, time_now, block_num, trx_id):
-    connection = connectdb()
+def updatebuff(connection, buff, price, time_now, block_num, trx_id):
+    
 
     try:
         table = connection["buffs"]
@@ -7099,42 +7098,42 @@ def updatebuff(buff, price, time_now, block_num, trx_id):
             return False
         int_price = int(price * 1e8)
 
-        connection.begin()
+        
         try:
             table = connection["buffs"]
             table.update({"id": buffdata["id"], "price": int_price}, ["id"])    
-            connection.commit()
+            
         except:
-            connection.rollback()
+            
             print ("Database transaction failed")
             return False     
 
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def buy(command, amount, time_now, block_num, trx_id, transfer_id):
-    connection = connectdb()
+def buy(connection, command, amount, time_now, block_num, trx_id, transfer_id):
+    
 
     try:
         table = connection["shop"]
         shopitem = table.find_one(itemid=command["itemid"])
         if shopitem is None:
             print("Shop item could not be found %s" % command["itemid"])
-            update_transfer_status(False, transfer_id)
+            update_transfer_status(connection, False, transfer_id)
             return False
         
         try:
             qty = int(command["qty"])
         except:
             print("Wrong amount")
-            update_transfer_status(False, transfer_id)
+            update_transfer_status(connection, False, transfer_id)
             return False
         price = float(shopitem["price"])
     
         if float(amount) < qty * price:
             print("Wrong amount")
-            update_transfer_status(False, transfer_id)
+            update_transfer_status(connection, False, transfer_id)
             return False    
         table = connection["items"]
         n_items_bought = table.count(itemid=command["itemid"])
@@ -7156,12 +7155,12 @@ def buy(command, amount, time_now, block_num, trx_id, transfer_id):
         if sales_per_day > 0 and n_items_bought_last_24h + qty > sales_per_day:
             errormsg = ("Please wait %d/%d" % (n_items_bought_last_24h, sales_per_day))
             print(errormsg)
-            update_transfer_status(False, transfer_id, errormsg)
+            update_transfer_status(connection, False, transfer_id, errormsg)
             return False
         if shopitem["max_supply"] is not None and n_items_bought >= shopitem["max_supply"]:
             errormsg = ("Maximum supply of %d items is reached." % shopitem["max_supply"])
             print(errormsg)
-            update_transfer_status(False, transfer_id, errormsg)
+            update_transfer_status(connection, False, transfer_id, errormsg)
             return False
         elif shopitem["max_supply"] is not None:
             print("%d/%d sold" % (n_items_bought, shopitem["max_supply"]))
@@ -7171,7 +7170,7 @@ def buy(command, amount, time_now, block_num, trx_id, transfer_id):
                                             "cde299964c433ba17cb82274f296be07e5d5e561", "6e649476e4114f09ada1e92cc096b767cb57e2a7"]:
             errormsg = ("User %s does not exists" % command["user"])
             print(errormsg)
-            update_transfer_status(False, transfer_id, errormsg)
+            update_transfer_status(connection, False, transfer_id, errormsg)
             return False
         
         
@@ -7180,7 +7179,7 @@ def buy(command, amount, time_now, block_num, trx_id, transfer_id):
         
         int_amount = int((float(amount) * 100) * 1e8)
         
-        connection.begin()
+        
         try:
             for i in range(qty):
                 uid = uid_from_seed(shopitem["prefix"])
@@ -7199,17 +7198,17 @@ def buy(command, amount, time_now, block_num, trx_id, transfer_id):
                 table = connection["stardust"]
                 table.insert({"trx": trx_id, "tr_type": "shop", "tr_status": 1, "date": time_now, "to_user":command["user"], "amount":int_amount})
             
-            connection.commit()
+            
         except:
-            connection.rollback() 
+             
             print ("Database transaction failed")
             return False
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def issue(itemid, quantity, target, time_now, block_num, trx_id):
-    connection = connectdb()
+def issue(connection, itemid, quantity, target, time_now, block_num, trx_id):
+    
 
     try:
         table = connection["shop"]
@@ -7236,18 +7235,18 @@ def issue(itemid, quantity, target, time_now, block_num, trx_id):
         
         seed = get_seed(trx_id)   
         set_seed(seed)
-        connection.begin()
+        
         try:
             for i in range(qty):
                 uid = uid_from_seed(shopitem["prefix"])
                 table = connection["items"]
                 table.insert({"uid": uid, "owner": target, "date": time_now, "trx_id": trx_id, "block_num": block_num,
                             "itemid": itemid})
-            connection.commit()
+            
         except:  
-            connection.rollback() 
+             
             print ("Database transaction failed")
             return False
         return True
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e

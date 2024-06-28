@@ -26,8 +26,7 @@ load_dotenv()
 # get the productivity data from the SQL DB
 # Connect to the database
 
-def get_transaction(trx, parameter):
-    connection = connectdb()
+def get_transaction(connection, trx, parameter):
     try:
         start_time = time.time()
 
@@ -134,7 +133,7 @@ def get_transaction(trx, parameter):
                     table = connection["planets"]
                     planet = table.find_one(cords_hor=mission["cords_hor"], cords_ver=mission["cords_ver"])
                     to_planet_id = planet["id"]                
-                    offload_return (shipid, to_planet_id, mission_id, parameter, time_now, block_num, trx_id)
+                    offload_return (connection, shipid, to_planet_id, mission_id, parameter, time_now, block_num, trx_id)
                 else:
                     table = connection['ships']
                     table.update({"id": str(shipid), "cords_hor": int(mission["cords_hor"]), "cords_ver": int(mission["cords_ver"])},['id'])                 
@@ -146,48 +145,48 @@ def get_transaction(trx, parameter):
             except:
                 print(type(tr_var1))        
             if usr == user:
-                success = transport_resources(tr_var1, tr_var2, tr_var3,tr_var4,tr_var5,tr_var6, tr_var7,tr_var8,  parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = transport_resources(connection, tr_var1, tr_var2, tr_var3,tr_var4,tr_var5,tr_var6, tr_var7,tr_var8,  parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
     
         elif tr_type == "offload_deploy_mission":
-            usr = get_mission_data(tr_var1,"user")
+            usr = get_mission_data(connection, tr_var1,"user")
             if usr == user and virtualop:
-                success = offload_deploy_mission(tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = offload_deploy_mission(connection, tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "offload_return_mission":
-            usr = get_mission_data(tr_var1,"user")
+            usr = get_mission_data(connection, tr_var1,"user")
             if usr == user and virtualop:
-                success = offload_return_mission(tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = offload_return_mission(connection, tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False   
 
         elif tr_type == "fly_home_mission":
-            usr = get_mission_data(tr_var1,"user")
+            usr = get_mission_data(connection, tr_var1,"user")
             if usr == user and virtualop:
-                success = fly_home_mission(tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = fly_home_mission(connection, tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
 
                 transaction_valid = False                
         elif tr_type == "offload_deploy":
-            usr = get_ship_data(tr_var1,"user")
+            usr = get_ship_data(connection, tr_var1,"user")
             if usr == user and virtualop:
-                success = offload_deploy(tr_var1,tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = offload_deploy(connection, tr_var1,tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "offload_return":
-            usr = get_ship_data(tr_var1,"user")
+            usr = get_ship_data(connection, tr_var1,"user")
             if usr == user and virtualop:
-                success = offload_return(tr_var1,tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = offload_return(connection, tr_var1,tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
@@ -206,16 +205,16 @@ def get_transaction(trx, parameter):
                     ship_list = tr_var1.split(";")        
                 else:
                     ship_list = [tr_var1]            
-                usr = get_ship_data(ship_list[0],"user")
+                usr = get_ship_data(connection, ship_list[0],"user")
             elif tr_var8 is None and isinstance(tr_var1, list) and len(tr_var1) > 0:
-                usr = get_ship_data(tr_var1[0],"user")
+                usr = get_ship_data(connection, tr_var1[0],"user")
             else:
                 print(tr_var8)
-                usr = get_planet_data(tr_var8,"user")
+                usr = get_planet_data(connection, tr_var8,"user")
             print(usr)
             if usr == user:
-                success = deploy_ships(tr_var1, tr_var2, tr_var3,tr_var4,tr_var5,tr_var6, tr_var7, tr_var8, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = deploy_ships(connection, tr_var1, tr_var2, tr_var3,tr_var4,tr_var5,tr_var6, tr_var7, tr_var8, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
@@ -226,11 +225,11 @@ def get_transaction(trx, parameter):
             except:
                 print(type(tr_var1))
 
-            usr = get_planet_data(tr_var4,"user")
+            usr = get_planet_data(connection, tr_var4,"user")
             print(usr)
             if usr == user:
-                success = attack(tr_var1, tr_var2, tr_var3,tr_var4, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = attack(connection, tr_var1, tr_var2, tr_var3,tr_var4, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
@@ -241,11 +240,11 @@ def get_transaction(trx, parameter):
             except:
                 print(type(tr_var1))
 
-            usr = get_planet_data(tr_var4,"user")
+            usr = get_planet_data(connection, tr_var4,"user")
             print(usr)
             if usr == user:
-                success = break_siege(tr_var1, tr_var2, tr_var3,tr_var4, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = break_siege(connection, tr_var1, tr_var2, tr_var3,tr_var4, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
@@ -256,11 +255,11 @@ def get_transaction(trx, parameter):
             except:
                 print(type(tr_var1))
 
-            usr = get_planet_data(tr_var4,"user")
+            usr = get_planet_data(connection, tr_var4,"user")
             print(usr)
             if usr == user:
-                success = support(tr_var1, tr_var2, tr_var3,tr_var4, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = support(connection, tr_var1, tr_var2, tr_var3,tr_var4, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
@@ -271,19 +270,19 @@ def get_transaction(trx, parameter):
             except:
                 print(type(tr_var1))
 
-            usr = get_planet_data(tr_var4,"user")
+            usr = get_planet_data(connection, tr_var4,"user")
             print(usr)
             if usr == user:
-                success = siege(tr_var1, tr_var2, tr_var3,tr_var4, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = siege(connection, tr_var1, tr_var2, tr_var3,tr_var4, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
                 
         elif tr_type == "battle_return":
-            usr = get_mission_data(tr_var1,"user")
+            usr = get_mission_data(connection, tr_var1,"user")
             if usr == user and virtualop:
-                success = battle_return(tr_var1,tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = battle_return(connection, tr_var1,tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
@@ -298,57 +297,56 @@ def get_transaction(trx, parameter):
         elif tr_type == "enhance":
             usr = tr_var1
             if usr == user:
-                success = enhance(tr_var1, tr_var2, tr_var3, parameter, time_now, trx_id, id)   
-                update_transaction_status(success, id)      
+                success = enhance(connection, tr_var1, tr_var2, tr_var3, parameter, time_now, trx_id, id)   
+                update_transaction_status(connection, success, id)      
             else:
                 transaction_valid = False
 
         elif tr_type == "newuser":
             usr = tr_var1
             if usr == user:
-                success = adduser(tr_var1, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = adduser(connection, tr_var1, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "respawn":
-            usr = get_planet_data(tr_var1,"user")       
+            usr = get_planet_data(connection, tr_var1,"user")       
             if usr == user:   
-                success = respawn(tr_var1, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = respawn(connection, tr_var1, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "burn":
-            usr = get_planet_data(tr_var1,"user")     
+            usr = get_planet_data(connection, tr_var1,"user")     
             if usr == user:
-                success = burn(tr_var1, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = burn(connection, tr_var1, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "buildship":
-            usr = get_planet_data(tr_var1,"user")
+            usr = get_planet_data(connection, tr_var1,"user")
             if usr == user:       
-                success = build_ship(tr_var1,tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = build_ship(connection, tr_var1,tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "explorespace":
-            usr = get_planet_data(tr_var1,"user")     
+            usr = get_planet_data(connection, tr_var1,"user")     
             if usr  == user:      
-                success = explorespace(tr_var1,tr_var2,tr_var3, tr_var4, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = explorespace(connection, tr_var1,tr_var2,tr_var3, tr_var4, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
                 
         elif tr_type == "explore":
-            usr_ship = get_ship_data(tr_var1,"user") 
+            usr_ship = get_ship_data(connection, tr_var1,"user") 
             if usr_ship  == user and virtualop: 
-                success = explore(tr_var1,tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
-                print(success)
-                update_transaction_status(success, id)
+                success = explore(connection, tr_var1,tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 print(usr_ship)
                 print("explore not valid")
@@ -356,170 +354,170 @@ def get_transaction(trx, parameter):
                 
         elif tr_type == "finishbuilding":
             if virtualop:       
-                success = finish_building(tr_var1,tr_var2,tr_var3, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = finish_building(connection, tr_var1,tr_var2,tr_var3, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "finishcharging":
             if virtualop:        
-                success = finish_charging(tr_var1,tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = finish_charging(connection, tr_var1,tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "finishskill":
             if virtualop:    
-                success = finish_skill(tr_var1,tr_var2,tr_var3, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = finish_skill(connection, tr_var1,tr_var2,tr_var3, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "upgrade":
-            usr = get_planet_data(tr_var1,"user")
+            usr = get_planet_data(connection, tr_var1,"user")
             if usr == user:
-                success = upgrade(tr_var1,tr_var2, parameter, time_now, trx_id, id)
-                update_transaction_status(success, id)            
+                success = upgrade(connection, user, tr_var1,tr_var2, parameter, time_now, trx_id, id)
+                update_transaction_status(connection, success, id)            
             else:
                 transaction_valid = False
 
         elif tr_type == "charge":
-            usr = get_planet_data(tr_var1,"user")
+            usr = get_planet_data(connection, tr_var1,"user")
             if usr == user:
-                success = charge(tr_var1,tr_var2, parameter, time_now, trx_id, id)
-                update_transaction_status(success, id) 
+                success = charge(connection, user, tr_var1,tr_var2, parameter, time_now, trx_id, id)
+                update_transaction_status(connection, success, id) 
             else:
                 transaction_valid = False
 
         elif tr_type == "enable":
-            usr = get_planet_data(tr_var1,"user")
+            usr = get_planet_data(connection, tr_var1,"user")
             if usr == user:
-                success = enable(tr_var1,tr_var2, parameter, time_now, trx_id, id)    
-                update_transaction_status(success, id)         
+                success = enable(connection, user, tr_var1,tr_var2, parameter, time_now, trx_id, id)    
+                update_transaction_status(connection, success, id)         
             else:
                 transaction_valid = False
 
         elif tr_type == "activate":
-            usr = get_item_data(tr_var1, "owner")
+            usr = get_item_data(connection, tr_var1, "owner")
             if usr == user:
-                success = activate(tr_var1, tr_var2, parameter, time_now, trx_id)
-                update_transaction_status(success, id)
+                success = activate(connection, tr_var1, tr_var2, parameter, time_now, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "giftitem":
-            usr = get_item_data(tr_var1, "owner")
+            usr = get_item_data(connection, tr_var1, "owner")
             if usr == user:
-                success = gift_item(tr_var1, tr_var2, parameter, time_now, trx_id)
-                update_transaction_status(success, id)
+                success = gift_item(connection, tr_var1, tr_var2, parameter, time_now, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "transferstardust":
-            success = transfer_stardust(user, tr_var1, tr_var2, parameter, time_now, trx_id)
-            update_transaction_status(success, id)
+            success = transfer_stardust(connection, user, tr_var1, tr_var2, parameter, time_now, trx_id)
+            update_transaction_status(connection, success, id)
 
         elif tr_type == "giftplanet":
-            usr = get_planet_data(tr_var1,"user")
+            usr = get_planet_data(connection, tr_var1,"user")
             if usr == user:
-                success = gift_planet(tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = gift_planet(connection, tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "renameplanet":
-            usr = get_planet_data(tr_var1,"user")
+            usr = get_planet_data(connection, tr_var1,"user")
             if usr == user:
-                success = rename_planet(tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = rename_planet(connection, tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False 
 
         elif tr_type == "updateshop":
             if user in ["nextcolony"]:
-                success = update_shop(tr_var1, tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = update_shop(connection, tr_var1, tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "newseason":
             if user in ["nextcolony"]:
-                success = new_season(tr_var1, tr_var2, tr_var3, tr_var4, tr_var5, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = new_season(connection, tr_var1, tr_var2, tr_var3, tr_var4, tr_var5, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False  
 
         elif tr_type == "finishseason":
             if virtualop:
-                success = finish_season(tr_var1, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = finish_season(connection, tr_var1, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "issue":
             if user in ["nextcolony"]:
-                success = issue(tr_var1, tr_var2, tr_var3, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = issue(connection, tr_var1, tr_var2, tr_var3, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False    
 
         elif tr_type == "issuestardust":
             if user in ["nextcolony"]:
-                success = issuestardust(tr_var1, tr_var2, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = issuestardust(connection, tr_var1, tr_var2, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False 
 
         elif tr_type == "upgradeyamato":
-            usr = get_planet_data(tr_var1,"user")
+            usr = get_planet_data(connection, tr_var1,"user")
             if usr == user:
-                success = upgrade_yamato(usr, tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = upgrade_yamato(connection, usr, tr_var1, tr_var2, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False 
 
         elif tr_type == "finishyamato":
             if virtualop:
-                success = finish_yamato(tr_var1,tr_var2,tr_var3, tr_var4, tr_var5, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = finish_yamato(connection, tr_var1,tr_var2,tr_var3, tr_var4, tr_var5, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "ask":
             if tr_var1 == "ship":          
-                usr = get_ship_data(tr_var2,"user")
+                usr = get_ship_data(connection, tr_var2,"user")
             elif tr_var1 == "item":
-                usr = get_item_data(tr_var2,"owner")
+                usr = get_item_data(connection, tr_var2,"owner")
             elif tr_var1 == "planet":
-                usr = get_planet_data(tr_var2,"user")
+                usr = get_planet_data(connection, tr_var2,"user")
             else:
                 usr = None
             if usr is not None and usr == user:
-                success = ask(usr, tr_var1, tr_var2, tr_var3, tr_var4, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = ask(connection, usr, tr_var1, tr_var2, tr_var3, tr_var4, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False   
 
         elif tr_type == "cancel_ask":
-            usr = get_ask_data(tr_var1,"user")
+            usr = get_ask_data(connection, tr_var1,"user")
             if usr == user:
-                success = cancel_ask(tr_var1, parameter, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = cancel_ask(connection, tr_var1, parameter, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False
 
         elif tr_type == "fill_ask":
-            success = fill_ask(user, tr_var1, parameter, time_now, block_num, trx_id)
-            update_transaction_status(success, id)
+            success = fill_ask(connection, user, tr_var1, parameter, time_now, block_num, trx_id)
+            update_transaction_status(connection, success, id)
 
         elif tr_type == "buff":
-            success = buff(user, tr_var1, parameter, time_now, block_num, trx_id)
-            update_transaction_status(success, id)
+            success = buff(connection, user, tr_var1, parameter, time_now, block_num, trx_id)
+            update_transaction_status(connection, success, id)
 
         elif tr_type == "updatebuff":
             if user in ["nextcolony"]:
-                success = updatebuff(tr_var1, tr_var2, time_now, block_num, trx_id)
-                update_transaction_status(success, id)
+                success = updatebuff(connection, tr_var1, tr_var2, time_now, block_num, trx_id)
+                update_transaction_status(connection, success, id)
             else:
                 transaction_valid = False 
 
@@ -535,9 +533,10 @@ def get_transaction(trx, parameter):
             print("%s (+ %.1f min): %s wants %s (%s, %s, %s)-> sucess: %s (dur. %.2f s)" % (str(time_now), delay_min, user, tr_type, tr_var1, tr_var2, tr_var3, str(success), duration_sec))
 
         if not transaction_valid:
-            update_transaction_status(False, id)
+            update_transaction_status(connection, False, id)
+    except Exception as e:
+        raise e
     finally:
-        connection.close()
         print("process transaction " + trx_id)
 
 # def get_transfer(trx):
@@ -588,7 +587,7 @@ def trigger_data():
     try:
         current_time = datetime.now()
         table = connection["virtualops"]
-        parameter = read_parameter()
+        parameter = read_parameter(connection)
 
         for trigger in table.find(tr_status=0, trigger_date={'<=': current_time}, order_by='trigger_date', _limit=10):
             connection.begin()
@@ -601,13 +600,14 @@ def trigger_data():
                 table2.insert(data)
                 table2 = connection["virtualops"] 
                 table2.update({"id":trigger["id"], "tr_status": 1, "block_date": current_time}, ["id"])
-
-                connection.commit()
                 table2 = connection["transactions"]  
                 trx = table2.find_one(trx=trigger["parent_trx"], tr_type=trigger["tr_type"])
-                print(trx)
-                get_transaction(trx, parameter)
-            except:
+                
+                get_transaction(connection, trx, parameter)
+
+                connection.commit()
+            except Exception as e:
+                print(e)
                 connection.rollback()
             
             

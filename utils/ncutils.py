@@ -165,7 +165,7 @@ def get_random_type():
 def get_random_img(max_img_number):
     return get_random_range(1, max_img_number)
 
-def read_parameter():
+def read_parameter(connection):
     try:
         parameter = {}
         upgrade_costs = {}
@@ -175,7 +175,7 @@ def read_parameter():
                         "yamato13","yamato14","yamato15","yamato16","yamato17","yamato18","yamato19","yamato20","oremine", "coppermine", "coalmine", "uraniummine", "base",
                         "researchcenter", "bunker", "shieldgenerator", "explorership1", "transportship1", "transportship2"]
         
-        connection = connectdb()
+        
         table = connection["upgradecosts"]
         # 모든 업그레이드 비용 데이터를 한 번에 가져오기
         results = table.all()
@@ -203,7 +203,7 @@ def read_parameter():
                         "rocketimprove", "bulletimprove", "laserimprove", "regenerationbonus", "repairbonus",
                         "shieldgenerator", "siegeprolongation", "depotincrease"]
         
-        connection = connectdb()
+        
         table = connection["skillcosts"]
         results = table.all()
         
@@ -226,7 +226,7 @@ def read_parameter():
         production_rates = {}
         production_keys = ["coalmine", "oremine", "coppermine", "uraniummine", "coaldepot", "oredepot", "copperdepot", "uraniumdepot"]
         
-        connection = connectdb()
+        
         table = connection["productivity"]
         results = table.all()
         
@@ -244,7 +244,7 @@ def read_parameter():
         parameter["production_rates"] = production_rates
         
         planet_rarity = {}
-        connection = connectdb()
+        
         table = connection["planetlevels"]
         for data in table.find():
             planet_rarity[data["rarity"]] = data
@@ -253,7 +253,7 @@ def read_parameter():
         
         shipstats = {}
         
-        connection = connectdb()
+        
         table = connection["shipstats"]
         for result in table.find():
             if result is not None:
@@ -262,7 +262,7 @@ def read_parameter():
         parameter["production_rates"] = production_rates
         
         planet_rarity = {}
-        # connection = connectdb()
+        # 
         table = connection["planetlevels"]
         for data in table.find():
             planet_rarity[data["rarity"]] = data
@@ -271,7 +271,7 @@ def read_parameter():
         
         shipstats = {}
         
-        # connection = connectdb()
+        # 
         table = connection["shipstats"]
         for result in table.find():
             if result is not None:
@@ -280,8 +280,8 @@ def read_parameter():
         parameter["shipstats"] = shipstats  
         
         return parameter
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 
 def coords_to_solarsystem(x,y):
@@ -330,9 +330,9 @@ def coords_to_donut(x, y):
     x_galaxy, y_galaxy = coords_to_region(x,y)
     return max(abs(x_galaxy), abs(y_galaxy)) + 1
 
-def get_free_solarsystem_in_donat(coords_list, solarsystem_list, region_list, galaxy_x, galaxy_y, d, add_legendary=False):
+def get_free_solarsystem_in_donat(connection, coords_list, solarsystem_list, region_list, galaxy_x, galaxy_y, d, add_legendary=False):
     try:
-        connection = connectdb()
+        
         offset_x, offset_y = galaxy_to_coords(galaxy_x, galaxy_y)
         region_offset_x, region_offset_y = coords_to_region(offset_x, offset_y)
         table = connection['planets']
@@ -361,8 +361,8 @@ def get_free_solarsystem_in_donat(coords_list, solarsystem_list, region_list, ga
                     xy_list.append((x_solarsystem, y_solarsystem))
             if len(try_list) == n:
                 return None, None
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 def get_random_region_in_donut(d):
     if d == 1:
@@ -502,9 +502,9 @@ def get_building_parameter(building):
     return (building_level, busy_parameter, skill_name)
     
 
-def write_spacedb(c_hor,c_ver,user, time_now, block_num, trx_id, uid=None):
+def write_spacedb(connection, c_hor,c_ver,user, time_now, block_num, trx_id, uid=None):
     try:
-        connection = connectdb()
+        
         table = connection['space']
         if uid is None:
             
@@ -513,13 +513,13 @@ def write_spacedb(c_hor,c_ver,user, time_now, block_num, trx_id, uid=None):
         else:
             table.insert({"user": user, "date": time_now, "c_hor": c_hor, "c_ver": c_ver,
                             "trx_id": trx_id, "block_num": block_num, "planet_id": uid})        
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def create_planet(x,y, uid, time_now, block_num, trx_id):
+def create_planet(connection, x,y, uid, time_now, block_num, trx_id):
     try:
         print ("creating a new planet")
-        connection = connectdb()
+        
         table = connection['planets']
         table.insert({"id": uid, "img_id": 0, "name": 0, "bonus": 0, "planet_type": 0, "user": 0, "qyt_uranium": 0, 
                     "qyt_ore": 0, "qyt_copper": 0, "qyt_coal": 0, "level_uranium": 0, "level_ore": 0,
@@ -530,12 +530,12 @@ def create_planet(x,y, uid, time_now, block_num, trx_id):
                     "shipyard_busy": time_now, "oredepot_busy": time_now, "coaldepot_busy": time_now, "copperdepot_busy": time_now,
                     "uraniumdepot_busy": time_now, "last_update": time_now, "date_disc": time_now, "cords_hor": x, "cords_ver": y,
                     "block_num": block_num, "trx_id": trx_id})
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def get_planetid (c_hor,c_ver):
+def get_planetid (connection, c_hor,c_ver):
     try:
-        connection = connectdb()
+        
         table = connection["planets"]     
         result = table.find_one(cords_hor=c_hor, cords_ver=c_ver)
         if result is None:
@@ -544,8 +544,8 @@ def get_planetid (c_hor,c_ver):
             #print (result)
             planetid = result['id']
             return (planetid)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
 def get_distance (c_hor1,c_ver1,c_hor2,c_ver2):
     return (hypot(c_hor2-c_hor1,c_ver2-c_ver1))
@@ -562,18 +562,18 @@ def get_flight_param(shipstats,distance,apply_battlespeed = False):
     uranium_consumption = int(uranium_consumption * 1e5) / 1e5
     return (uranium_consumption, flight_duration)
 
-def shipdata(shipid):
+def shipdata(connection, shipid):
     try:
-        connection = connectdb()
+        
         table = connection["ships"]
         result = table.find_one(id=shipid)
         return result
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def get_shipdata(shipid):
+def get_shipdata(connection, shipid):
     try:
-        connection = connectdb()
+        
         table = connection["ships"]
         result = table.find_one(id=shipid)    
         if result is None:
@@ -592,13 +592,12 @@ def get_shipdata(shipid):
             mission_id = result['mission_id']
             home_planet_id = result['home_planet_id']
             return (type,level,user,cords_hor,cords_ver,qty_copper,qty_uranium,qty_coal,qty_ore,busy_until, mission_id, home_planet_id)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def get_mission_data(id,var):
+def get_mission_data(connection, id,var):
     # Connect to the database
     try:
-        connection = connectdb()
         table=connection["missions"]
         results = table.find_one(mission_id=id)    
         
@@ -606,17 +605,13 @@ def get_mission_data(id,var):
             return None                
         #print(results)
         data = results[str(var)]
-        connection.close()
         return(data)
-    except:
-        return None
-    finally:
-        connection.close()    
-
-def get_ask_data(id,var):
+    except Exception as e:
+        raise e
+    
+def get_ask_data(connection, id,var):
     # Connect to the database
     try:
-        connection = connectdb()
         table=connection["asks"]
         results = table.find_one(id=id)    
         
@@ -624,17 +619,13 @@ def get_ask_data(id,var):
             return None                
         #print(results)
         data = results[str(var)]
-        connection.close()
         return(data)
-    except:
-        return None
-    finally:
-        connection.close()    
+    except Exception as e:
+        raise e 
 
-def get_ship_data(id,var):
+def get_ship_data(connection, id, var):
     # Connect to the database
     try:
-        connection = connectdb()
         table=connection["ships"]
         results = table.find_one(id=id)    
         
@@ -642,17 +633,14 @@ def get_ship_data(id,var):
             return None                
         #print(results)
         data = results[str(var)]
-        connection.close()
         return(data)
-    except:
-        return None
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def get_item_data(uid,var):
+def get_item_data(connection, uid,var):
     # Connect to the database
     try:
-        connection = connectdb()
+        
         table=connection["items"]
         results = table.find_one(uid=uid)    
         
@@ -660,32 +648,27 @@ def get_item_data(uid,var):
             return None                
         #print(results)
         data = results[str(var)]
-        connection.close()
         return(data)
-    except:
-        return None
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def get_planet_data(id,var):
+def get_planet_data(connection, id,var):
     # get the productivity data from the SQL DB
     # Connect to the database
     try:
-        connection = connectdb()
+        
         table = connection["planets"]
         results = table.find_one(id=id)    
         if results is None:
             return None       
         data = results[str(var)]
         return(data)
-    except:
-        return None
-    finally:
-        connection.close()  
+    except Exception as e:
+        raise e  
 
-def update_transaction_status(success, id, error=None):
+def update_transaction_status(connection, success, id, error=None):
     try:
-        connection = connectdb()
+        
         table = connection["transactions"]
         if success:
             tr_status = 1
@@ -695,12 +678,12 @@ def update_transaction_status(success, id, error=None):
             table.update({"id": id, "tr_status": tr_status}, ["id"])
         else:
             table.update({"id": id, "tr_status": tr_status, "error": error[:256]}, ["id"])
-    finally:
-        connection.close()   
+    except Exception as e:
+        raise e   
 
-def update_transfer_status(success, id, error=None):
+def update_transfer_status(connection, success, id, error=None):
     try:
-        connection = connectdb()
+        
         table = connection["transfers"]
         if success:
             tr_status = 1
@@ -710,12 +693,12 @@ def update_transfer_status(success, id, error=None):
             table.update({"id": id, "tr_status": tr_status}, ["id"])
         else:
             table.update({"id": id, "tr_status": tr_status, "error": error[:256]}, ["id"])    
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def get_planetdata(planetid):
+def get_planetdata(connection, planetid):
     try:
-        connection = connectdb()
+        
         table = connection["planets"]
         result = table.find_one(id=planetid)     
         if result is None:
@@ -761,10 +744,10 @@ def get_planetdata(planetid):
             return (id,name,bonus,planet_type,user,cords_hor,cords_ver,qty_copper,qty_uranium,qty_coal,qty_ore,level_uranium,level_copper,level_coal,level_ore,level_ship,\
                     level_base,level_research,level_coaldepot,level_oredepot,level_uraniumdepot,level_copperdepot,level_shipyard,ore_busy,copper_busy,coal_busy,uranium_busy,\
                     research_busy,base_busy,shipyard_busy,oredepot_busy,copperdepot_busy,coaldepot_busy,uraniumdepot_busy,last_update)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def explore_planet(uid, owner, type, bonuslevel, img_id, time_now):
+def explore_planet(connection, uid, owner, type, bonuslevel, img_id, time_now):
     try:
         init_lvl_copper = 0
         init_lvl_coal = 0
@@ -780,7 +763,7 @@ def explore_planet(uid, owner, type, bonuslevel, img_id, time_now):
                             14: "Omicron", 15: "Pi", 16: "Rho", 17: "Sigma", 18: "Tau", 19: "Upsilon",
                             20: "Phi", 21: "Chi", 22: "Psi", 23: "Omega"}
         
-        connection = connectdb()
+        
         table = connection["planets"]
         n_planets = table.count(user=owner)
         planet_count = table.count(user=owner)
@@ -802,7 +785,7 @@ def explore_planet(uid, owner, type, bonuslevel, img_id, time_now):
 
             if user == "0":
 
-                connection = connectdb()
+                
                 table = connection["planets"]
                 table.update({"name": next_name, "user": owner, "planet_type": type, "img_id": img_id,
                             "bonus": bonuslevel, "qyt_uranium": init_qty_uranium, "level_base": init_lvl_base,
@@ -813,10 +796,10 @@ def explore_planet(uid, owner, type, bonuslevel, img_id, time_now):
 
 
             return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def find_starterplanet_coords(reg_h,reg_v):
+def find_starterplanet_coords(connection, reg_h,reg_v):
     try:
         # find a spawn point - generate two random int mumbers in the range of 0 to 10 and substract 5 and than multiply with 11 - these are the mid points of the players starting solar system
         
@@ -833,7 +816,7 @@ def find_starterplanet_coords(reg_h,reg_v):
         print (sp_v)
 
         # check in the user db if the spawn points are already taken
-        connection = connectdb()
+        
         table = connection['users']
         sp_exist = table.find_one(sp_h=sp_h,sp_v=sp_v )
 
@@ -852,27 +835,27 @@ def find_starterplanet_coords(reg_h,reg_v):
                 print (sp_h_final)
                 print (sp_v_final)
                 return(sp_h_final,sp_v_final)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def checkifuser(name):
+def checkifuser(connection, name):
     try:
         # Connect to the database
-        connection = connectdb()
+        
         table = connection["users"]    
         result = table.find_one(username=name)
         if result is None:
             return (False)
         else:
             return (True)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def findfreespot(time_now):
+def findfreespot(connection, time_now):
     try:
         print("Finding a free spot in the galaxy")
         success = False
-        connection = connectdb()
+        
         table = connection["planets"]
         while not success:
             x = randint(-100,100)
@@ -885,13 +868,13 @@ def findfreespot(time_now):
             else:
                 print(result["id"])
         return (x,y)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
 
-def findfreeplanet(time_now):
+def findfreeplanet(connection, time_now):
     try:
         success = False
-        connection = connectdb()
+        
         table = connection["planets"]    
         while not success:
             x = randint(-100,100)
@@ -908,5 +891,5 @@ def findfreeplanet(time_now):
                         print ("Planet is already taken")
 
         return (x,y)
-    finally:
-        connection.close()
+    except Exception as e:
+        raise e
