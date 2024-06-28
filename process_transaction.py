@@ -347,6 +347,7 @@ def get_transaction(trx, parameter):
             usr_ship = get_ship_data(tr_var1,"user") 
             if usr_ship  == user and virtualop: 
                 success = explore(tr_var1,tr_var2, tr_var3, parameter, time_now, block_num, trx_id)
+                print(success)
                 update_transaction_status(success, id)
             else:
                 print(usr_ship)
