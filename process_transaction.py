@@ -49,7 +49,7 @@ def get_transaction(connection, trx, parameter):
         
         success = False
         if (datetime.now() - time_now).total_seconds() < 12: 
-            update_ranking(parameter, time_now)
+            update_ranking(connection, parameter, time_now)
         check_ships = False
         # if abs((time_now - datetime(2019, 6, 9, 6, 22, 30)).total_seconds()) < 10:
         #     check_ships = True    

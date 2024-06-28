@@ -415,9 +415,9 @@ def explorespace(connection, planet_id,c_hor,c_ver, ship_name, parameter, time_n
         if shipid is None:
             print("No free explorer %s was found." % ship_name)
             return False
-        (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,mission_id, home_planet_id) = get_shipdata(shipid)
+        (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,mission_id, home_planet_id) = get_shipdata(connection, shipid)
         
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         # check if there is a planet on the location already
         target_planet_id = get_planetid (connection, c_hor,c_ver)
         if target_planet_id is not None:
@@ -687,7 +687,7 @@ def transport_resources(connection, ship_list, planet_id, c_hor,c_ver ,qty_coal,
             print("%d ships are not able to transport %.2f resources" % (len(ship_data), total_load))
             return False
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         if time_now < datetime(2019, 7, 17, 7, 30, 0):
             uranium_needed = (uranium_consumption) + float(qty_uranium)
         else:
@@ -1028,7 +1028,7 @@ def break_siege(connection, ship_list, c_hor,c_ver ,start_planet_id, parameter, 
 
         
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         uranium_needed = 2* (uranium_consumption)
         if (float(uranium_needed) > float (new_qty_uranium)): 
             print ("Not enough ressources")
@@ -1311,7 +1311,7 @@ def attack(connection, ship_list, c_hor,c_ver ,start_planet_id, parameter, time_
 
         
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         uranium_needed = 2* (uranium_consumption)
         if (float(uranium_needed) > float (new_qty_uranium)): 
             print ("Not enough ressources")
@@ -1606,7 +1606,7 @@ def siege(connection, ship_list, c_hor,c_ver ,start_planet_id, parameter, time_n
 
         
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         uranium_needed = 2* (uranium_consumption)
         if (float(uranium_needed) > float (new_qty_uranium)): 
             print ("Not enough ressources")
@@ -1891,7 +1891,7 @@ def support(connection, ship_list, c_hor,c_ver ,start_planet_id, parameter, time
 
         
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         uranium_needed = 2* (uranium_consumption)
         if (float(uranium_needed) > float (new_qty_uranium)): 
             print ("Not enough ressources")
@@ -2149,7 +2149,7 @@ def deploy_ships(connection, ship_list, c_hor,c_ver ,qty_coal,qty_ore,qty_copper
             return False
         
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         uranium_needed = (uranium_consumption) + float(qty_uranium)
         if (float(qty_ore) > float (new_qty_ore)) or (float(qty_coal) > float (new_qty_coal)) or (float(qty_copper) > float (new_qty_copper)) or (float(uranium_needed) > float (new_qty_uranium)): 
             print ("Not enough ressources")
@@ -2258,7 +2258,7 @@ def offload_deploy(connection, shipid, mission_id, parameter, time_now, block_nu
     try:
         print("offload_deploy")
         
-        (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(shipid)
+        (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(connection, shipid)
 
         #get the data from the planet on which the ship is currently  located
         planet_id = get_planetid (connection, s_cords_hor,s_cords_ver)
@@ -2271,7 +2271,7 @@ def offload_deploy(connection, shipid, mission_id, parameter, time_now, block_nu
         user = planet_data['user']
         
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         
         fin_qty_coal = float(new_qty_coal) + float(s_qty_coal)
         fin_qty_ore = float(new_qty_ore) + float(s_qty_ore)
@@ -2316,7 +2316,7 @@ def offload_deploy_mission(connection, mission_id, planet_id, parameter, time_no
     
         
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         fin_qty_coal = float(new_qty_coal)
         fin_qty_ore = float(new_qty_ore)
         fin_qty_copper = float(new_qty_copper)
@@ -2326,7 +2326,7 @@ def offload_deploy_mission(connection, mission_id, planet_id, parameter, time_no
         table = connection["ships"]
         for ship in table.find(mission_id=mission_id):
             shipid = ship["id"]
-            (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(shipid)        
+            (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(connection, shipid)        
             fin_qty_coal = fin_qty_coal + float(s_qty_coal)
             fin_qty_ore = fin_qty_ore + float(s_qty_ore)
             fin_qty_copper = fin_qty_copper + float(s_qty_copper)
@@ -2483,7 +2483,7 @@ def offload_return_mission(connection, mission_id, planet_id, parameter, time_no
         print("Distance %.2f, duration %.2f, arrival %s" % (distance, max_duration, str(t_arrival)))
     
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         fin_qty_coal = float(new_qty_coal)
         fin_qty_ore = float(new_qty_ore)
         fin_qty_copper = float(new_qty_copper)
@@ -2495,7 +2495,7 @@ def offload_return_mission(connection, mission_id, planet_id, parameter, time_no
         table = connection["ships"]
         for ship in table.find(mission_id=mission_id):
             shipid = ship["id"]
-            (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(shipid)        
+            (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(connection, shipid)        
             fin_qty_coal = fin_qty_coal + float(s_qty_coal)
             fin_qty_ore = fin_qty_ore + float(s_qty_ore)
             fin_qty_copper = fin_qty_copper + float(s_qty_copper)
@@ -3485,7 +3485,7 @@ def battle_return(connection, mission_id, to_planet_id, attack_mission_type, par
         t_arrival = time_now + timedelta(max_duration / 24)
         
         # get resources of the attacked planet
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         q_coal = float(new_qty_coal)
         q_ore = float(new_qty_ore)
         q_copper = float(new_qty_copper)
@@ -3918,7 +3918,7 @@ def offload_return (connection, shipid, to_planet_id, mission_id, parameter, tim
     try:
         print("offload")
         
-        (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(shipid)
+        (s_type,s_level,s_user,s_cords_hor,s_cords_ver,s_qty_copper,s_qty_uranium,s_qty_coal,s_qty_ore,s_busy_until,tmp_mission_id, home_planet_id) = get_shipdata(connection, shipid)
 
         planet_id = get_planetid (connection, s_cords_hor,s_cords_ver)
         if planet_id is None:
@@ -3949,7 +3949,7 @@ def offload_return (connection, shipid, to_planet_id, mission_id, parameter, tim
         t_arrival = time_now + timedelta(flight_duration / 24)
         
         # check if there is enough resources on the starting planet - if not return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planet_id, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planet_id, parameter, time_now)
         
         fin_qty_coal = float(new_qty_coal) + float(s_qty_coal)
         fin_qty_ore = float(new_qty_ore) + float(s_qty_ore)
@@ -4035,7 +4035,7 @@ def update_ranking(connection, parameter, time_now):
             return
         print("Update %d entries - %s - age %.2f h" % (limit, str(oldest_entry["last_update"]), age))
         for data in table.find(order_by="last_update", _limit=limit):
-            update_ranking_user(data["user"], time_now)
+            update_ranking_user(connection, data["user"], time_now)
     except Exception as e:
         raise e
 
@@ -4297,7 +4297,7 @@ def build_ship(connection, planetid,ship, parameter, time_now, block_num, trx_id
         uranium_costs = build_costs['uranium']
 
         # get the current level of available resources from the database
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planetid, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(connection, planetid, parameter, time_now)
 
         if level_shipyard < shipyard_level_requirement:
             print("Shipyard must be %d" % shipyard_level_requirement)
@@ -4433,7 +4433,7 @@ def finish_skill(connection, user, skill, newlevel, parameter, time_now, block_n
         for p in table.find(user=user):
             planetid_list.append(p["id"])
             planetid = p["id"]
-            (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planetid, parameter, time_now)
+            (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(connection, planetid, parameter, time_now)
             table = connection["planets"]
             table.update({"id": planetid, "qyt_coal": new_qty_coal, "qyt_ore": new_qty_ore, "qyt_copper": new_qty_copper,
                         "qyt_uranium": new_qty_uranium, "last_update": (time_now)}, ["id"])
@@ -4491,7 +4491,7 @@ def enhance(connection, user, planetid, skill, parameter, time_now, trx_id, tran
             print("Enhance %s is not possible, as %s does not exists in skill costs" % (skill, str(new_skill_level)))
             return False    
         # get the current ressource levels
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planetid, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(connection, planetid, parameter, time_now)
         if skill_costs[skill][str(new_skill_level)]['ore'] > new_qty_ore:
             print("Not enough ore")
             return (False)
@@ -4573,7 +4573,7 @@ def finish_building(connection, planetid, building, newlevel, parameter, time_no
         if str(newlevel) not in upgrade_costs[building]:
             print("Upgrade %s is not possible, as %s does not exists in upgrade costs" % (building, str(newlevel)))
             return False
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planetid, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(connection, planetid, parameter, time_now)
         
         table = connection["planets"]
         table.update({"id": planetid, str(building_level): int(newlevel), "qyt_coal": new_qty_coal, "qyt_ore": new_qty_ore, "qyt_copper": new_qty_copper,
@@ -4599,7 +4599,7 @@ def finish_charging(connection, planetid, building, parameter, time_now, block_n
             print("Could not find planetid %s" % str(planetid))
             return (False)
 
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planetid, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(connection, planetid, parameter, time_now)
         
         table = connection["planets"]
         table.update({"id": planetid, "qyt_coal": new_qty_coal, "qyt_ore": new_qty_ore, "qyt_copper": new_qty_copper,
@@ -4801,7 +4801,7 @@ def upgrade(connection, user, planetid,building, parameter, time_now, trx_id, tr
         uranium_costs = upgrade_building_costs['uranium']
 
         # get the current level of available resources from the database
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(planetid, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research, level_shipyard) = get_resource_levels(connection, planetid, parameter, time_now)
         if pdata[busy_parameter] is None:
             busy_time = datetime(1990,1,1,1,1,1,1)
         else:
@@ -5292,7 +5292,7 @@ def upgrade_yamato(connection, username, planetid, shiptype, parameter, time_now
             return False
         target_ship_type = "yamato"+str(tier+1)
         print (target_ship_type)
-        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(planetid, parameter, time_now)
+        (new_qty_coal,new_qty_ore,new_qty_copper,new_qty_uranium,level_base,level_research,level_shipyard) = get_resource_levels(connection, planetid, parameter, time_now)
         
         # check if the amount of resources on the planet is sufficient
         if target_ship_type in upgrade_costs:
