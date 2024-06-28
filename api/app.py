@@ -8,6 +8,8 @@ from datetime import datetime, timedelta, timezone
 import math
 import dataset
 from steemengine.market import Wallet
+import logging
+logging.basicConfig(level=logging.INFO)
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from process_transaction import get_transaction
@@ -89,7 +91,7 @@ def SendCommand():
     connection = connectdb()
     try:
         # 현재 시간 얻기
-        current_time = datetime.now()
+        current_time = datetime.now() - timedelta(hours=9)
 
         # 현재 시간을 'YYYY-MM-DD HH:MM:SS' 형식으로 출력
         formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
@@ -144,6 +146,7 @@ def SendCommand():
 
     except Exception as err:
         print(f"Error: {err}")
+        logging.error(err, exc_info=True)
         connection.rollback()
         return jsonify({"error": "Exception"}), 500
     finally:
@@ -336,7 +339,7 @@ def currentseason():
         last_season = table.find_one(order_by="-end_date")
         if last_season is None:
             return jsonify({})
-        if last_season["end_date"] < datetime.now():
+        if last_season["end_date"] < datetime.now() - timedelta(hours=9):
             return jsonify({})
         
         return jsonify(last_season)
@@ -803,7 +806,7 @@ def shipyard():
                 activated = False
             apply_battlespeed = False
             if battlespeed_buff is not None:
-                if battlespeed_buff > datetime.now():
+                if battlespeed_buff > datetime.now() - timedelta(hours=9):
                     apply_battlespeed = True 
             base_speed = row["speed"]   
             if apply_battlespeed:
@@ -993,7 +996,7 @@ def loadshop():
         stack  = []
         for row in table.find(order_by='id'):
             table = connection["items"]
-            left = table.count(itemid=row["itemid"], date={'>=': (datetime.now() - timedelta(days=1))})
+            left = table.count(itemid=row["itemid"], date={'>=': (datetime.now() - timedelta(hours=9) - timedelta(days=1))})
             if row["sales_per_day"] > 0:
                 leftt = row["sales_per_day"] - left
             else:
@@ -1072,7 +1075,7 @@ def loadfleet():
             active_support_missions.append(row["mission_id"])
 
         for row in table.find(user=user, cords_hor_dest=hor, cords_ver_dest=ver, mission_type="upgradeyamato", cancel_trx=None):
-            if row["busy_until_return"] is not None and row["busy_until_return"] > datetime.now():
+            if row["busy_until_return"] is not None and row["busy_until_return"] > datetime.now() - timedelta(hours=9):
                 active_support_missions.append(row["mission_id"])
 
         table = connection["shipstats"]
@@ -1087,14 +1090,14 @@ def loadfleet():
         battlespeed_buff = userdata["b_battlespeed"]
         apply_battlespeed = False
         if battlespeed_buff is not None:
-            if battlespeed_buff > datetime.now():
+            if battlespeed_buff > datetime.now() - timedelta(hours=9):
                 apply_battlespeed = True
 
         table = connection["ships"]
         stack = []
-        for row in table.find(user=user, cords_hor=hor, cords_ver=ver, busy_until={'<': datetime.now()}):
+        for row in table.find(user=user, cords_hor=hor, cords_ver=ver, busy_until={'<': datetime.now() - timedelta(hours=9)}):
 
-            curutc = datetime.now()
+            curutc = datetime.now() - timedelta(hours=9)
             if row["busy_until"] > curutc:
                 continue
             if row["mission_busy_until"] is not None and row["mission_busy_until"] > curutc:
@@ -1157,7 +1160,7 @@ def planetfleet():
         battlespeed_buff = userdata["b_battlespeed"]
         apply_battlespeed = False
         if battlespeed_buff is not None:
-            if battlespeed_buff > datetime.now():
+            if battlespeed_buff > datetime.now() - timedelta(hours=9):
                 apply_battlespeed = True
 
         sql=""" SELECT * from shipstats t1
@@ -1230,7 +1233,7 @@ def planetships():
         battlespeed_buff = userdata["b_battlespeed"]
         apply_battlespeed = False
         if battlespeed_buff is not None:
-            if battlespeed_buff > datetime.now():
+            if battlespeed_buff > datetime.now() - timedelta(hours=9):
                 apply_battlespeed = True
         type_filter = "1 = 1"
         if ship_type is not None:
@@ -1409,7 +1412,7 @@ def loadgalaxy():
         table = connection["missions"]
         explore = []
         all_missions = []
-        for row in table.find(cords_hor_dest={'between': [xmin, xmax]}, cords_ver_dest={'between': [ymin, ymax]}, busy_until_return={'>': datetime.now()}):
+        for row in table.find(cords_hor_dest={'between': [xmin, xmax]}, cords_ver_dest={'between': [ymin, ymax]}, busy_until_return={'>': datetime.now() - timedelta(hours=9)}):
             mission_type = row['mission_type']
             if mission_type == "explorespace":
                 mission_type = "explore"
@@ -1419,7 +1422,7 @@ def loadgalaxy():
                 explore.append({'x' : row["cords_hor_dest"], 'y' : row["cords_ver_dest"], 'start_x' : row["cords_hor"], 'start_y' : row["cords_ver"], 
                                 'type': row['mission_type'], 'user' : row['user'], 'ships': row['ships'], 'date': int(row['busy_until'].timestamp()), 'date_return': int(row['busy_until_return'].timestamp())})
 
-        for row in table.find(cords_hor_dest={'between': [xmin, xmax]}, cords_ver_dest={'between': [ymin, ymax]}, busy_until_return=None, busy_until={'>': datetime.now()}):
+        for row in table.find(cords_hor_dest={'between': [xmin, xmax]}, cords_ver_dest={'between': [ymin, ymax]}, busy_until_return=None, busy_until={'>': datetime.now() - timedelta(hours=9)}):
             mission_type = row['mission_type']
             explore.append({'x' : row["cords_hor_dest"], 'y' : row["cords_ver_dest"], 'start_x' : row["cords_hor"], 'start_y' : row["cords_ver"], 
                             'type': row['mission_type'], 'user' : row['user'], 'ships': row['ships'], 'date': int(row['busy_until'].timestamp()), 'date_return': None})
@@ -1532,27 +1535,27 @@ def loadfleetmission():
                         missions_list.append(row)
                     for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return=None, order_by='busy_until'):
                         missions_list.append(row)
-                    for row in table.find(user=user, cords_hor=posx, cords_ver=posy, busy_until_return={'>': datetime.now()}, order_by='busy_until'):
+                    for row in table.find(user=user, cords_hor=posx, cords_ver=posy, busy_until_return={'>': datetime.now() - timedelta(hours=9)}, order_by='busy_until'):
                         missions_list.append(row)
-                    for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'>': datetime.now()}, order_by='busy_until'):
+                    for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'>': datetime.now() - timedelta(hours=9)}, order_by='busy_until'):
                         missions_list.append(row)                    
                 elif active == 0 and limit is None and False:
                     for row in table.find(user=user, cords_hor=posx, cords_ver=posy, busy_until_return=None, order_by='busy_until'):
                         missions_list.append(row)
                     for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy,  busy_until_return=None, order_by='busy_until'):
                         missions_list.append(row)
-                    for row in table.find(user=user, cords_hor=posx, cords_ver=posy, busy_until_return={'<': datetime.now()}, order_by='busy_until'):
+                    for row in table.find(user=user, cords_hor=posx, cords_ver=posy, busy_until_return={'<': datetime.now() - timedelta(hours=9)}, order_by='busy_until'):
                         missions_list.append(row)
-                    for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'<': datetime.now()}, order_by='busy_until'):
+                    for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'<': datetime.now() - timedelta(hours=9)}, order_by='busy_until'):
                         missions_list.append(row)
                 elif active == 0 and limit is not None and False:
                     for row in table.find(user=user, cords_hor=posx, cords_ver=posy, busy_until_return=None, order_by='busy_until', _limit=limit*(page+1)):
                         missions_list.append(row)
                     for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return=None, order_by='busy_until', _limit=limit*(page+1)):
                         missions_list.append(row)
-                    for row in table.find(user=user, cords_hor=posx, cords_ver=posy, busy_until_return={'<': datetime.now()}, order_by='busy_until', _limit=limit*(page+1)):
+                    for row in table.find(user=user, cords_hor=posx, cords_ver=posy, busy_until_return={'<': datetime.now() - timedelta(hours=9)}, order_by='busy_until', _limit=limit*(page+1)):
                         missions_list.append(row)
-                    for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'<': datetime.now()}, order_by='busy_until', _limit=limit*(page+1)):
+                    for row in table.find(user=user, cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'<': datetime.now() - timedelta(hours=9)}, order_by='busy_until', _limit=limit*(page+1)):
                         missions_list.append(row)                    
                 elif limit is not None:
                     for row in table.find(user=user, cords_hor=posx, cords_ver=posy, order_by='-busy_until', _limit=limit*(page+1)):
@@ -1572,27 +1575,27 @@ def loadfleetmission():
                         missions_list.append(row)
                     for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return=None, order_by='-busy_until'):
                         missions_list.append(row)
-                    for row in table.find(cords_hor=posx, cords_ver=posy, busy_until_return={'>': datetime.now()}, order_by='-busy_until'):
+                    for row in table.find(cords_hor=posx, cords_ver=posy, busy_until_return={'>': datetime.now() - timedelta(hours=9)}, order_by='-busy_until'):
                         missions_list.append(row)
-                    for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'>': datetime.now()}, order_by='-busy_until'):
+                    for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'>': datetime.now() - timedelta(hours=9)}, order_by='-busy_until'):
                         missions_list.append(row)                    
                 elif active == 0 and limit is None and False:
                     for row in table.find(cords_hor=posx, cords_ver=posy, mission_type="explorespace", busy_until_return=None, order_by='busy_until'):
                         missions_list.append(row)
                     for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, mission_type="explorespace", busy_until_return=None, order_by='busy_until'):
                         missions_list.append(row)
-                    for row in table.find(cords_hor=posx, cords_ver=posy, busy_until_return={'<': datetime.now()}, order_by='busy_until'):
+                    for row in table.find(cords_hor=posx, cords_ver=posy, busy_until_return={'<': datetime.now() - timedelta(hours=9)}, order_by='busy_until'):
                         missions_list.append(row)
-                    for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'<': datetime.now()}, order_by='busy_until'):
+                    for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'<': datetime.now() - timedelta(hours=9)}, order_by='busy_until'):
                         missions_list.append(row)
                 elif active == 0 and limit is not None and False:
                     for row in table.find(cords_hor=posx, cords_ver=posy, mission_type="explorespace", busy_until_return=None, order_by='busy_until', _limit=limit*(page+1)):
                         missions_list.append(row)
                     for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, mission_type="explorespace", busy_until_return=None, order_by='busy_until', _limit=limit*(page+1)):
                         missions_list.append(row)
-                    for row in table.find(cords_hor=posx, cords_ver=posy, busy_until_return={'<': datetime.now()}, order_by='busy_until', _limit=limit*(page+1)):
+                    for row in table.find(cords_hor=posx, cords_ver=posy, busy_until_return={'<': datetime.now() - timedelta(hours=9)}, order_by='busy_until', _limit=limit*(page+1)):
                         missions_list.append(row)
-                    for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'<': datetime.now()}, order_by='busy_until', _limit=limit*(page+1)):
+                    for row in table.find(cords_hor_dest=posx, cords_ver_dest=posy, busy_until_return={'<': datetime.now() - timedelta(hours=9)}, order_by='busy_until', _limit=limit*(page+1)):
                         missions_list.append(row)                    
                 elif limit is not None:
                     for row in table.find(cords_hor=posx, cords_ver=posy, order_by='-busy_until', _limit=limit*(page+1)):
@@ -1639,7 +1642,7 @@ def loadfleetmission():
                 busy_return = int(row['busy_until_return'].timestamp())
             else:
                 busy_return = None
-            if datetime.now() > row['busy_until'] and busy_return is not None:
+            if datetime.now() - timedelta(hours=9) > row['busy_until'] and busy_return is not None:
                 arrival = busy_return
             start_x = row['cords_hor']
             start_y = row['cords_ver']
@@ -1648,7 +1651,7 @@ def loadfleetmission():
 
             if row["cancel_trx"] is None:
                 
-                if row['busy_until'] > datetime.now():
+                if row['busy_until'] > datetime.now() - timedelta(hours=9):
                     if end_x == posx and end_y == posy and outgoing == 1:
                         continue
                     elif start_x == posx and start_y == posy and outgoing == 0:
@@ -1657,7 +1660,7 @@ def loadfleetmission():
                         continue
                     elif active == 0:
                         continue
-                elif row['busy_until_return'] is not None and row['busy_until_return'] > datetime.now() and row['busy_until'] < datetime.now() and (row["mission_type"] == "siege" or row["mission_type"] == "upgradeyamato"):
+                elif row['busy_until_return'] is not None and row['busy_until_return'] > datetime.now() - timedelta(hours=9) and row['busy_until'] < datetime.now() - timedelta(hours=9) and (row["mission_type"] == "siege" or row["mission_type"] == "upgradeyamato"):
                     if outgoing == 1:
                         continue
                     elif outgoing == 0:
@@ -1666,7 +1669,7 @@ def loadfleetmission():
                         continue
                     elif active == 0:
                         continue                 
-                elif row['busy_until_return'] is not None and row['busy_until'] < datetime.now() and row['busy_until_return'] > datetime.now():
+                elif row['busy_until_return'] is not None and row['busy_until'] < datetime.now() - timedelta(hours=9) and row['busy_until_return'] > datetime.now() - timedelta(hours=9):
                     if end_x == posx and end_y == posy and outgoing == 0:
                         continue
                     elif start_x == posx and start_y == posy and outgoing == 1:
@@ -1675,7 +1678,7 @@ def loadfleetmission():
                         continue
                     elif active == 0:
                         continue
-                elif row['busy_until_return'] is not None and row['busy_until_return'] < datetime.now():
+                elif row['busy_until_return'] is not None and row['busy_until_return'] < datetime.now() - timedelta(hours=9):
                     if end_x == posx and end_y == posy and outgoing == 0:
                         continue
                     elif start_x == posx and start_y == posy and outgoing == 1:
@@ -1685,7 +1688,7 @@ def loadfleetmission():
                     elif active == 1:
                         continue             
                     
-                elif row['busy_until_return'] is None and row['busy_until'] < datetime.now() and (row["mission_type"] == "support" or row["mission_type"] == "siege" or row["mission_type"] == "upgradeyamato"):
+                elif row['busy_until_return'] is None and row['busy_until'] < datetime.now() - timedelta(hours=9) and (row["mission_type"] == "support" or row["mission_type"] == "siege" or row["mission_type"] == "upgradeyamato"):
                     if outgoing == 1:
                         continue
                     elif outgoing == 0:
@@ -1694,7 +1697,7 @@ def loadfleetmission():
                         continue
                     elif active == 0:
                         continue                    
-                elif row['busy_until_return'] is None and row['busy_until'] < datetime.now():
+                elif row['busy_until_return'] is None and row['busy_until'] < datetime.now() - timedelta(hours=9):
                     if end_x == posx and end_y == posy and outgoing == 1:
                         continue
                     elif start_x == posx and start_y == posy and outgoing == 0:
@@ -1704,7 +1707,7 @@ def loadfleetmission():
                     elif active == 1:
                         continue                      
             else:
-                if row['busy_until'] > datetime.now():
+                if row['busy_until'] > datetime.now() - timedelta(hours=9):
                     if end_x == posx and end_y == posy and outgoing == 0:
                         continue
                     elif start_x == posx and start_y == posy and outgoing == 1:
@@ -1713,7 +1716,7 @@ def loadfleetmission():
                         continue
                     elif active == 0:
                         continue
-                elif row['busy_until_return'] is not None and row['busy_until'] < datetime.now() and row['busy_until_return'] > datetime.now():
+                elif row['busy_until_return'] is not None and row['busy_until'] < datetime.now() - timedelta(hours=9) and row['busy_until_return'] > datetime.now() - timedelta(hours=9):
                     if end_x == posx and end_y == posy and outgoing == 0:
                         continue
                     elif start_x == posx and start_y == posy and outgoing == 1:
@@ -2275,7 +2278,7 @@ def galaxplanets():
             try:
                 queryDate = datetime.fromtimestamp(int(after))
             except:
-                queryDate = datetime.now()
+                queryDate = datetime.now() - timedelta(hours=9)
 
         table = connection["planets"]
         planet_list = []  
@@ -2427,7 +2430,7 @@ def missionoverview():
             max_missions = int(missioncontrol) * 2
         else:
             max_missions = 0
-        if missioncontrol_buff is not None and missioncontrol_buff > datetime.now():
+        if missioncontrol_buff is not None and missioncontrol_buff > datetime.now() - timedelta(hours=9):
             max_missions = 400
 
         sql = """SELECT COUNT(*) active_missions
@@ -2551,7 +2554,7 @@ def planetshpiyard():
         battlespeed_buff = userdata["b_battlespeed"]
         apply_battlespeed = False
         if battlespeed_buff is not None:
-            if battlespeed_buff > datetime.now():
+            if battlespeed_buff > datetime.now() - timedelta(hours=9):
                 apply_battlespeed = True
 
         if name is not None:
@@ -2664,20 +2667,20 @@ def missioninfo():
         running_missions = 0
         table = connection["missions"]
         for mission in table.find(user=user, order_by="-date"):
-            if mission["busy_until_return"] is None and mission["busy_until"] > datetime.now():
+            if mission["busy_until_return"] is None and mission["busy_until"] > datetime.now() - timedelta(hours=9):
                 running_missions += 1
-            elif mission["busy_until_return"] is not None and mission["busy_until_return"] > datetime.now():
+            elif mission["busy_until_return"] is not None and mission["busy_until_return"] > datetime.now() - timedelta(hours=9):
                 running_missions += 1
         allowed_missions = missioncontrol * 2
-        if missioncontrol_buff is not None and missioncontrol_buff > datetime.now():
+        if missioncontrol_buff is not None and missioncontrol_buff > datetime.now() - timedelta(hours=9):
             allowed_missions = 400
 
         running_planet_missions = 0
         table = connection["missions"]
         for mission in table.find(user=user, cords_hor=cords_hor ,cords_ver=cords_ver,  order_by="-date"):
-            if mission["busy_until_return"] is None and mission["busy_until"] > datetime.now():
+            if mission["busy_until_return"] is None and mission["busy_until"] > datetime.now() - timedelta(hours=9):
                 running_planet_missions += 1
-            elif mission["busy_until_return"] is not None and mission["busy_until_return"] > datetime.now():
+            elif mission["busy_until_return"] is not None and mission["busy_until_return"] > datetime.now() - timedelta(hours=9):
                 running_planet_missions += 1
         allowed_planet_missions = math.floor(level_base / 2)
 
@@ -2736,7 +2739,7 @@ def yamatotracker():
     
     try:
         yamato_list =[]
-        now = datetime.now()
+        now = datetime.now() - timedelta(hours=9)
         busy = request.args.get('busy', 2)
         upgrade = 0
         
