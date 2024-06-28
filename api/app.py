@@ -97,9 +97,42 @@ def SendCommand():
 
         connection.begin()
 
-        table = connection["transactions"]    
-        table.insert({"trx":data.get("trx", ""), "user":data.get("username", ""),"tr_type":data.get("tr_type", ""), "tr_var1": data.get("tr_var1", ""), "tr_var2": data.get("tr_var2", ""), "tr_var3":data.get("tr_var3", ""), "tr_var4": data.get("tr_var4", ""),
-                          "tr_var5": data.get("tr_var5", ""), "tr_var6": data.get("tr_var6", ""), "tr_var7":data.get("tr_var7", ""), "tr_var8": data.get("tr_var8", ""), "tr_status": 0, "date": formatted_time})
+        # table = connection["transactions"]    
+        # table.insert({"trx":data.get("trx", ""), "user":data.get("username", ""),"tr_type":data.get("tr_type", ""), "tr_var1": data.get("tr_var1", ""), "tr_var2": data.get("tr_var2", ""), "tr_var3":data.get("tr_var3", ""), "tr_var4": data.get("tr_var4", ""),
+        #                   "tr_var5": data.get("tr_var5", ""), "tr_var6": data.get("tr_var6", ""), "tr_var7":data.get("tr_var7", ""), "tr_var8": data.get("tr_var8", ""), "tr_status": 0})
+        
+        sql_query = f"""
+            INSERT INTO transactions (
+                trx, 
+                user, 
+                tr_type, 
+                tr_var1, 
+                tr_var2, 
+                tr_var3, 
+                tr_var4, 
+                tr_var5, 
+                tr_var6, 
+                tr_var7, 
+                tr_var8, 
+                tr_status,
+                date
+            ) VALUES (
+                '{data.get("trx", "")}', 
+                '{data.get("username", "")}', 
+                '{data.get("tr_type", "")}', 
+                '{data.get("tr_var1", "")}', 
+                '{data.get("tr_var2", "")}', 
+                '{data.get("tr_var3", "")}', 
+                '{data.get("tr_var4", "")}', 
+                '{data.get("tr_var5", "")}', 
+                '{data.get("tr_var6", "")}', 
+                '{data.get("tr_var7", "")}', 
+                '{data.get("tr_var8", "")}', 
+                0,
+                CURRENT_TIMESTAMP
+            );
+            """
+        connection.query(sql_query)
         trx = table.find_one(trx = data.get("trx", ""))
         parameter = read_parameter(connection)
 
