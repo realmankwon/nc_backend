@@ -604,6 +604,7 @@ def trigger_data():
                 connection.commit()
                 table2 = connection["transactions"]  
                 trx = table2.find_one(trx=trigger["parent_trx"], tr_type=trigger["tr_type"])
+                print(trx)
                 get_transaction(trx, parameter)
             except:
                 connection.rollback()
