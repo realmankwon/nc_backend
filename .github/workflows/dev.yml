@@ -20,5 +20,8 @@ jobs:
           script: |
             cd project/nc/nc_backend
             git pull origin success
+<<<<<<< HEAD
             sudo systemctl restart nc_api.service
             sudo systemctl restart nc.service
+=======
+>>>>>>> d080ebd (Create dev.yml)
