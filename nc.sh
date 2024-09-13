@@ -1,3 +1,2 @@
 #!/bin/bash
-cd /home/uncommon/project/nc/nc_backend
-/usr/local/bin/python3.12 -u /home/uncommon/project/nc/nc_backend/process_transaction.py
+PORT=20000 python api/app.py
