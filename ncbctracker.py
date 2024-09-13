@@ -5,12 +5,7 @@ import os
 from datetime import timedelta, datetime
 import requests
 import logging
-from beem.blockchain import Blockchain
-from beem.block import Block
-from beem.amount import Amount
 import dataset
-from beem import Steem
-from beem.nodelist import NodeList
 from utils.ncutils import get_custom_json_id, get_transfer_id
 from unidecode import unidecode
 

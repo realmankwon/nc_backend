@@ -1,10 +1,5 @@
 import json
 from datetime import timedelta, datetime
-from beem.block import Block, BlockHeader
-from beem.amount import Amount
-from beem.nodelist import NodeList
-
-from beem import Steem
 import requests
 import time
 import hashlib

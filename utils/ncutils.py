@@ -1,4 +1,3 @@
-from beem.block import Block, BlockHeader
 import hashlib
 import random
 import base36
