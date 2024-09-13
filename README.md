@@ -1,10 +1,45 @@
 # nextcolony
 
+## Install pyenv
+
+Download
+
+```
+curl https://pyenv.run | bash
+```
+
+Setting path
+
+```
+$ vi ~/.bashrc
+
+export PATH="$HOME/.pyenv/bin:$PATH"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+```
+
+Setting shell
+
+```
+source ~/.bashrc  # or source ~/.zshrc
+```
+
+```
+pyenv install 3.12.0
+pyenv virtualenv 3.12.0 nextcolony
+pyenv activate nextcolony
+python -m pip install -r requirements.txt
+```
+
 ## Install
+
 ```
 apt-get install build-essential libssl-dev python3-dev git python3-pip
 ```
+
 Server
+
 ```
 apt install mysql-server libmysqlclient-dev
 ```
@@ -18,6 +53,7 @@ apt install phpmyadmin php-mbstring php-gettext
 ```
 
 ## Setup
+
 ```
 pip3 install wheel beem dataset mysqlclient base36
 ```
@@ -37,6 +73,7 @@ create new file config.json:
 ```
 
 ### python libs
+
 ```
 sudo pip3 install unidecode
 ```

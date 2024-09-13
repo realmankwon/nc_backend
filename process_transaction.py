@@ -615,7 +615,9 @@ def trigger_data():
     finally:
         connection.close()
 
-current_time = datetime.now() - timedelta(hours=9)
-print("현재 시간:", current_time)
 
-trigger_data()
+while True:
+    current_time = datetime.now() - timedelta(hours=9)
+    print("현재 시간:", current_time)
+    trigger_data()
+    time.sleep(1)
