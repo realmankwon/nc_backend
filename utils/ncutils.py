@@ -7,6 +7,8 @@ import math
 from random import randint
 import os
 import dataset
+import pymysql
+pymysql.install_as_MySQLdb()
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 load_dotenv()
